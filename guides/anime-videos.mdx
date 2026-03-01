@@ -1,0 +1,464 @@
+---
+title: 'Anime Videos'
+description: 'Upscale anime videos with the optimized realesr-animevideov3 model'
+---
+
+## Overview
+
+Real-ESRGAN provides the `realesr-animevideov3` model specifically optimized for anime video super-resolution. This lightweight model (XS size) is designed to process video frames efficiently while maintaining temporal consistency.
+
+## Quick Start
+
+<Steps>
+  <Step title="Download Model">
+    ```bash
+    wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-animevideov3.pth -P weights
+    ```
+  </Step>
+  
+  <Step title="Run Video Inference">
+    ```bash
+    python inference_realesrgan_video.py -i input_video.mp4 -n realesr-animevideov3 -s 2
+    ```
+  </Step>
+  
+  <Step title="Check Output">
+    The enhanced video will be saved as `input_video_out.mp4` in the `results` folder.
+  </Step>
+</Steps>
+
+## Model Specifications
+
+### realesr-animevideov3
+
+| Property | Value |
+|----------|-------|
+| **Architecture** | SRVGGNetCompact |
+| **Size** | XS (~8MB) |
+| **Conv Layers** | 16 |
+| **Upscale Factor** | 4x (supports 1x, 2x, 3x, 4x) |
+| **Best For** | Anime videos, animation |
+| **Speed** | Fast (optimized for video) |
+
+**Download URL:**
+```bash
+https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-animevideov3.pth
+```
+
+## Video Inference Script
+
+The `inference_realesrgan_video.py` script is specifically designed for video processing with additional features:
+
+### Basic Usage
+
+<CodeGroup>
+```bash Single GPU, Single Process
+python inference_realesrgan_video.py -i input.mp4 -n realesr-animevideov3 -s 2
+```
+
+```bash Custom Output Path
+python inference_realesrgan_video.py -i input.mp4 -n realesr-animevideov3 -s 2 -o results --suffix enhanced
+```
+
+```bash 4x Upscaling
+python inference_realesrgan_video.py -i input.mp4 -n realesr-animevideov3 -s 4
+```
+</CodeGroup>
+
+### Multi-GPU and Multi-Processing
+
+For faster processing, use multiple GPUs and processes:
+
+<CodeGroup>
+```bash Single GPU, Multi-Process
+# Improve GPU utilization with multiple processes
+CUDA_VISIBLE_DEVICES=0 python inference_realesrgan_video.py \
+  -i input.mp4 -n realesr-animevideov3 -s 2 \
+  --num_process_per_gpu 2
+```
+
+```bash Multi-GPU, Multi-Process
+# Use 4 GPUs with 2 processes each (8 total processes)
+CUDA_VISIBLE_DEVICES=0,1,2,3 python inference_realesrgan_video.py \
+  -i input.mp4 -n realesr-animevideov3 -s 2 \
+  --num_process_per_gpu 2
+```
+
+```bash Custom GPU Selection
+# Use only GPU 1 and 2
+CUDA_VISIBLE_DEVICES=1,2 python inference_realesrgan_video.py \
+  -i input.mp4 -n realesr-animevideov3 -s 2
+```
+</CodeGroup>
+
+<Note>
+  The total number of processes = number of GPUs × `num_process_per_gpu`
+  
+  Multi-processing helps improve GPU utilization as video processing is often bottlenecked by I/O operations.
+</Note>
+
+## Command-Line Arguments
+
+### Video-Specific Options
+
+<ParamField path="-i, --input" type="string" required>
+  Input video file, image, or folder of frames
+</ParamField>
+
+<ParamField path="-n, --model_name" type="string" default="realesr-animevideov3">
+  Model to use. Options:
+  - `realesr-animevideov3` (recommended for anime videos)
+  - `RealESRGAN_x4plus_anime_6B`
+  - `RealESRGAN_x4plus`
+  - Other image models
+</ParamField>
+
+<ParamField path="-o, --output" type="string" default="results">
+  Output folder for the enhanced video
+</ParamField>
+
+<ParamField path="-s, --outscale" type="float" default="4">
+  Final upsampling scale (1, 2, 3, or 4 recommended)
+</ParamField>
+
+<ParamField path="--suffix" type="string" default="out">
+  Suffix for output video filename
+</ParamField>
+
+<ParamField path="--fps" type="float" default="None">
+  FPS of output video. If not specified, uses the input video's FPS.
+</ParamField>
+
+<ParamField path="--ffmpeg_bin" type="string" default="ffmpeg">
+  Path to ffmpeg binary (use if ffmpeg is not in PATH)
+</ParamField>
+
+### Performance Options
+
+<ParamField path="--num_process_per_gpu" type="integer" default="1">
+  Number of processes per GPU
+  
+  Increase this to improve GPU utilization. The program is often I/O bound, so GPUs are not fully utilized with a single process.
+</ParamField>
+
+<ParamField path="--extract_frame_first" type="flag">
+  Extract all frames first before processing
+  
+  Use this if you encounter ffmpeg errors during multi-processing.
+</ParamField>
+
+<ParamField path="-t, --tile" type="integer" default="0">
+  Tile size for processing. Use if you encounter CUDA out of memory errors.
+</ParamField>
+
+<ParamField path="--tile_pad" type="integer" default="10">
+  Tile padding size
+</ParamField>
+
+<ParamField path="--pre_pad" type="integer" default="0">
+  Pre-padding size at each border
+</ParamField>
+
+<ParamField path="--fp32" type="flag">
+  Use FP32 precision instead of FP16
+</ParamField>
+
+### Additional Options
+
+<ParamField path="--face_enhance" type="flag">
+  Enable GFPGAN face enhancement
+  
+  <Warning>
+    Face enhancement is automatically disabled for anime models. It's designed for realistic faces only.
+  </Warning>
+</ParamField>
+
+<ParamField path="-dn, --denoise_strength" type="float" default="0.5">
+  Denoise strength (only for `realesr-general-x4v3` model)
+</ParamField>
+
+## Advanced Workflows
+
+### Method 1: Direct Video Processing (Recommended)
+
+Process video directly with automatic frame handling:
+
+```bash
+python inference_realesrgan_video.py -i anime.mp4 -n realesr-animevideov3 -s 2 --suffix outx2
+```
+
+This automatically:
+1. Extracts frames using ffmpeg
+2. Processes frames with Real-ESRGAN
+3. Merges frames back into video with audio
+
+### Method 2: Extract-Process-Merge Workflow
+
+Manual control over each step:
+
+<Steps>
+  <Step title="Extract Frames">
+    ```bash
+    mkdir tmp_frames
+    ffmpeg -i input.mp4 -qscale:v 1 -qmin 1 -qmax 1 -vsync 0 tmp_frames/frame%08d.png
+    ```
+    
+    This extracts frames with high quality (qscale:v 1) to avoid compression artifacts.
+  </Step>
+  
+  <Step title="Process Frames">
+    Use the standard image inference script:
+    ```bash
+    python inference_realesrgan.py -n realesr-animevideov3 -i tmp_frames -o out_frames
+    ```
+    
+    Or use the video script with folder input:
+    ```bash
+    python inference_realesrgan_video.py -i tmp_frames -n realesr-animevideov3 -s 2
+    ```
+  </Step>
+  
+  <Step title="Get Original FPS">
+    ```bash
+    ffmpeg -i input.mp4
+    ```
+    
+    Look for the fps value in the output (e.g., "23.98 fps").
+  </Step>
+  
+  <Step title="Merge Frames Back">
+    ```bash
+    # Without audio
+    ffmpeg -r 23.98 -i out_frames/frame%08d.png -c:v libx264 -r 23.98 -pix_fmt yuv420p output.mp4
+    
+    # With audio from original
+    ffmpeg -r 23.98 -i out_frames/frame%08d.png -i input.mp4 \
+      -map 0:v:0 -map 1:a:0 -c:a copy -c:v libx264 \
+      -r 23.98 -pix_fmt yuv420p output_with_audio.mp4
+    ```
+  </Step>
+</Steps>
+
+### Method 3: Using Extract Frame First
+
+Use this if you encounter ffmpeg errors with multi-processing:
+
+```bash
+python inference_realesrgan_video.py \
+  -i input.mp4 -n realesr-animevideov3 -s 2 \
+  --extract_frame_first --num_process_per_gpu 2
+```
+
+This extracts all frames first, then processes them in parallel.
+
+## NCNN Executable for Videos
+
+For users who prefer the portable NCNN executable:
+
+<Steps>
+  <Step title="Download NCNN Executable">
+    - [Windows](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip)
+    - [Linux](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip)
+    - [MacOS](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-macos.zip)
+  </Step>
+  
+  <Step title="Extract Frames">
+    ```bash
+    mkdir tmp_frames
+    ffmpeg -i input.mp4 -qscale:v 1 -qmin 1 -qmax 1 -vsync 0 tmp_frames/frame%08d.png
+    ```
+  </Step>
+  
+  <Step title="Process with NCNN">
+    ```bash
+    mkdir out_frames
+    ./realesrgan-ncnn-vulkan.exe -i tmp_frames -o out_frames -n realesr-animevideov3 -s 2 -f jpg
+    ```
+  </Step>
+  
+  <Step title="Merge Frames">
+    ```bash
+    # Get FPS from original video
+    ffmpeg -i input.mp4
+    
+    # Merge with audio
+    ffmpeg -r 23.98 -i out_frames/frame%08d.jpg -i input.mp4 \
+      -map 0:v:0 -map 1:a:0 -c:a copy -c:v libx264 \
+      -r 23.98 -pix_fmt yuv420p output.mp4
+    ```
+  </Step>
+</Steps>
+
+## Performance Optimization
+
+### GPU Utilization
+
+<Tip>
+  **Improve GPU Usage**
+  
+  Video processing is often I/O bound. Use multiple processes to keep GPUs busy:
+  
+  ```bash
+  # Single GPU - use 2-4 processes
+  CUDA_VISIBLE_DEVICES=0 python inference_realesrgan_video.py \
+    -i video.mp4 -n realesr-animevideov3 -s 2 --num_process_per_gpu 3
+  
+  # Multi-GPU - use 2 processes per GPU
+  CUDA_VISIBLE_DEVICES=0,1 python inference_realesrgan_video.py \
+    -i video.mp4 -n realesr-animevideov3 -s 2 --num_process_per_gpu 2
+  ```
+  
+  Monitor GPU usage with `nvidia-smi` to find the optimal number of processes.
+</Tip>
+
+### Memory Management
+
+<Warning>
+  **High Resolution Videos**
+  
+  For 4K or higher resolution videos, the output size can be extremely large:
+  
+  - 1080p → 4K (4x): Very slow I/O
+  - 4K → 8K+ (4x): Extremely slow, consider using smaller scale
+  
+  Recommendation:
+  ```bash
+  # For 4K input, use 2x instead of 4x
+  python inference_realesrgan_video.py -i 4k_video.mp4 -n realesr-animevideov3 -s 2
+  ```
+</Warning>
+
+### Using Tiling
+
+For high-resolution videos that cause CUDA out of memory errors:
+
+```bash
+python inference_realesrgan_video.py \
+  -i high_res_video.mp4 -n realesr-animevideov3 -s 2 \
+  --tile 400 --tile_pad 10
+```
+
+## Tips for Best Results
+
+<Tip>
+  **Choose the Right Scale**
+  
+  - **480p → 960p**: Use `-s 2`
+  - **480p → 1080p**: Use `-s 2.25` or `-s 2.5`
+  - **720p → 1080p**: Use `-s 1.5`
+  - **1080p → 4K**: Use `-s 2` (avoid 4x for performance)
+</Tip>
+
+<Tip>
+  **Input Video Quality**
+  
+  Better source quality = better results:
+  - Use the highest quality source available
+  - Avoid re-encoded or heavily compressed videos
+  - If available, use Blu-ray rips over streaming captures
+</Tip>
+
+<Tip>
+  **Output Format**
+  
+  For best quality output:
+  ```bash
+  # High quality output with custom ffmpeg settings
+  # (modify the script or use manual merge with custom ffmpeg parameters)
+  ffmpeg -r 23.98 -i out_frames/frame%08d.png -i input.mp4 \
+    -map 0:v:0 -map 1:a:0 -c:a copy \
+    -c:v libx264 -crf 18 -preset slow \
+    -r 23.98 -pix_fmt yuv420p output.mp4
+  ```
+  
+  - Lower CRF = higher quality (18 is very high quality)
+  - Slower preset = better compression
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="FFmpeg errors during multi-processing">
+    Use the `--extract_frame_first` option:
+    ```bash
+    python inference_realesrgan_video.py \
+      -i video.mp4 -n realesr-animevideov3 -s 2 \
+      --extract_frame_first --num_process_per_gpu 2
+    ```
+  </Accordion>
+  
+  <Accordion title="CUDA out of memory">
+    Solutions:
+    1. Use tiling:
+       ```bash
+       python inference_realesrgan_video.py -i video.mp4 -n realesr-animevideov3 -s 2 --tile 400
+       ```
+    
+    2. Reduce processes per GPU:
+       ```bash
+       python inference_realesrgan_video.py -i video.mp4 -n realesr-animevideov3 -s 2 --num_process_per_gpu 1
+       ```
+    
+    3. Use a smaller scale:
+       ```bash
+       python inference_realesrgan_video.py -i video.mp4 -n realesr-animevideov3 -s 2
+       ```
+  </Accordion>
+  
+  <Accordion title="Very slow processing">
+    For large videos (>1080p output):
+    
+    1. Use multi-processing:
+       ```bash
+       CUDA_VISIBLE_DEVICES=0 python inference_realesrgan_video.py \
+         -i video.mp4 -n realesr-animevideov3 -s 2 --num_process_per_gpu 3
+       ```
+    
+    2. Consider using multiple GPUs:
+       ```bash
+       CUDA_VISIBLE_DEVICES=0,1 python inference_realesrgan_video.py \
+         -i video.mp4 -n realesr-animevideov3 -s 2 --num_process_per_gpu 2
+       ```
+    
+    3. Use smaller scale or lower resolution input
+  </Accordion>
+  
+  <Accordion title="No audio in output">
+    The script should automatically copy audio. If it doesn't:
+    
+    1. Manually merge with audio:
+       ```bash
+       ffmpeg -i enhanced_video.mp4 -i original.mp4 \
+         -c:v copy -c:a copy -map 0:v:0 -map 1:a:0 output.mp4
+       ```
+    
+    2. Check if original video has audio:
+       ```bash
+       ffmpeg -i original.mp4
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Model Comparison for Videos
+
+| Model | Size | Speed | Quality | Best For |
+|-------|------|-------|---------|----------|
+| `realesr-animevideov3` | 8MB | Fast | Excellent | Anime videos (recommended) |
+| `RealESRGAN_x4plus_anime_6B` | 17MB | Medium | Excellent | High-quality anime frames |
+| `RealESRGAN_x4plus` | 64MB | Slow | Good | General video content |
+
+For anime videos, `realesr-animevideov3` is recommended due to its small size and optimization for video content.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Anime Images" icon="image" href="/guides/anime-images">
+    Learn about the anime image model
+  </Card>
+  <Card title="NCNN Executable" icon="rocket" href="/guides/ncnn-executable">
+    Use portable executable for video frame processing
+  </Card>
+  <Card title="General Images" icon="photo" href="/guides/general-images">
+    Explore models for non-anime content
+  </Card>
+</CardGroup>

@@ -1,0 +1,150 @@
+---
+title: Frequently Asked Questions
+description: Common questions and troubleshooting for Real-ESRGAN
+---
+
+Find answers to common questions about using Real-ESRGAN, including model selection, face enhancement, and error resolution.
+
+## Model Selection
+
+<Accordion title="How do I select the right model for my use case?">
+  Different models are optimized for different types of content:
+  
+  - **RealESRGAN_x4plus**: General purpose model for real-world images
+  - **RealESRGAN_x4plus_anime_6B**: Optimized for anime and illustration images
+  - **RealESRGANv2-animevideo-xsx2**: For anime videos at 2x upscaling
+  - **RealESRGANv2-animevideo-xsx4**: For anime videos at 4x upscaling
+  - **RealESRNet_x4plus**: Suitable when you want less texture enhancement
+  
+  For detailed model comparisons and recommendations, refer to the [Model Zoo](/models/model-zoo) documentation.
+</Accordion>
+
+## Face Enhancement
+
+<Accordion title="Can I use face_enhance for anime images or animation videos?">
+  <Warning>
+    The `face_enhance` option is **only designed for real human faces** and should not be used for anime content.
+  </Warning>
+  
+  The face enhancement feature uses models trained specifically on real human faces and will not work properly on anime characters or illustrations. Using this option on anime content will:
+  
+  - Waste GPU memory unnecessarily
+  - Not improve the output quality
+  - Potentially introduce artifacts
+  
+  **Recommendation**: Omit the `--face_enhance` flag when processing anime images or animation videos to save GPU memory and avoid potential issues.
+</Accordion>
+
+## Common Errors
+
+<Accordion title="Error: slow_conv2d_cpu not implemented for Half">
+  This error occurs when running Real-ESRGAN inference on CPU with half precision (fp16), which is the default setting for memory efficiency.
+  
+  ### Error Message
+  ```
+  RuntimeError: "slow_conv2d_cpu" not implemented for 'Half'
+  ```
+  
+  ### Cause
+  Real-ESRGAN uses half precision (fp16) by default to:
+  - Reduce GPU memory consumption
+  - Speed up inference
+  
+  However, some operators for half precision inference are not implemented in CPU mode.
+  
+  ### Solution
+  Add the `--fp32` option to your command to use full precision (fp32) instead:
+  
+  ```bash
+  python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs --fp32
+  ```
+  
+  Or with the executable:
+  
+  ```bash
+  ./realesrgan-ncnn-vulkan -i input.jpg -o output.png --fp32
+  ```
+  
+  <Note>
+    Using `--fp32` will increase memory usage but is required for CPU inference.
+  </Note>
+</Accordion>
+
+<Accordion title="Out of memory errors during inference">
+  If you encounter GPU out-of-memory errors, try these solutions:
+  
+  1. **Use tile mode**: Process the image in smaller tiles
+     ```bash
+     python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --tile 200
+     ```
+  
+  2. **Disable face enhancement** (if enabled):
+     ```bash
+     python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg
+     # Remove --face_enhance flag
+     ```
+  
+  3. **Reduce tile size**: Lower the tile parameter value
+     ```bash
+     python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --tile 100
+     ```
+  
+  <Note>
+    Smaller tile sizes use less memory but may take longer to process.
+  </Note>
+</Accordion>
+
+## Installation Issues
+
+<Accordion title="How do I verify my installation is working correctly?">
+  After installing Real-ESRGAN, test your installation with a simple command:
+  
+  ```bash
+  python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs
+  ```
+  
+  If you see output images generated without errors, your installation is working correctly.
+  
+  For dependency issues, ensure you have:
+  - Python 3.7+
+  - PyTorch 1.7+
+  - basicsr
+  - facexlib (if using face enhancement)
+  - gfpgan (if using face enhancement)
+</Accordion>
+
+<Accordion title="Which Python version should I use?">
+  Real-ESRGAN is compatible with **Python 3.7 or higher**.
+  
+  Check your Python version:
+  ```bash
+  python --version
+  ```
+  
+  If you have multiple Python versions installed, you may need to use `python3` explicitly:
+  ```bash
+  python3 inference_realesrgan.py -n RealESRGAN_x4plus -i inputs
+  ```
+</Accordion>
+
+## Performance
+
+<Accordion title="How can I improve inference speed?">
+  Several options can improve Real-ESRGAN's inference speed:
+  
+  1. **Use GPU acceleration**: Ensure CUDA is properly installed
+  2. **Use the ncnn implementation**: Faster for CPU inference
+     ```bash
+     ./realesrgan-ncnn-vulkan -i input.jpg -o output.png
+     ```
+  
+  3. **Disable unnecessary features**:
+     - Remove `--face_enhance` if not needed
+     - Use appropriate tile sizes (larger = faster but more memory)
+  
+  4. **Choose the right model**: Smaller models like RealESRGANv2 variants may be faster
+  
+  <Note>
+    The ncnn implementation offers better performance on both CPU and mobile devices.
+  </Note>
+</Accordion>

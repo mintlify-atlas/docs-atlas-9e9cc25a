@@ -1,0 +1,213 @@
+---
+title: 'General Models'
+description: 'Models optimized for general photographic images and natural scenes'
+---
+
+General models are designed for natural images, photographs, and real-world content. These models excel at upscaling portraits, landscapes, and everyday photography.
+
+## Available Models
+
+<CardGroup cols={2}>
+  <Card title="RealESRGAN_x4plus" icon="star">
+    Primary model with best quality for 4x upscaling
+  </Card>
+  <Card title="RealESRGAN_x2plus" icon="expand">
+    Optimized for 2x upscaling
+  </Card>
+  <Card title="realesr-general-x4v3" icon="gauge-high">
+    Lightweight model for fast processing
+  </Card>
+  <Card title="RealESRNet_x4plus" icon="paintbrush">
+    MSE-based model for smooth results
+  </Card>
+</CardGroup>
+
+## Model Specifications
+
+### RealESRGAN_x4plus
+
+<Note>
+  **Recommended**: This is the flagship model for general images, providing the best quality for 4x upscaling.
+</Note>
+
+| Property | Value |
+| --- | --- |
+| **Scale** | 4x |
+| **Architecture** | RRDBNet |
+| **RRDB Blocks** | 23 |
+| **Features** | 64 |
+| **Growth Channels** | 32 |
+| **Download** | [RealESRGAN_x4plus.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth) |
+
+```bash
+# Download and use
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth -P weights
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs -o outputs
+```
+
+### RealESRGAN_x2plus
+
+| Property | Value |
+| --- | --- |
+| **Scale** | 2x |
+| **Architecture** | RRDBNet |
+| **RRDB Blocks** | 23 |
+| **Features** | 64 |
+| **Growth Channels** | 32 |
+| **Download** | [RealESRGAN_x2plus.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth) |
+
+```bash
+# Download and use
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth -P weights
+python inference_realesrgan.py -n RealESRGAN_x2plus -i inputs -o outputs
+```
+
+### realesr-general-x4v3
+
+<Note>
+  **Lightweight**: This model consumes much less GPU memory and processing time, making it ideal for resource-constrained environments.
+</Note>
+
+| Property | Value |
+| --- | --- |
+| **Scale** | 1x, 2x, 3x, or 4x (variable) |
+| **Architecture** | SRVGGNetCompact |
+| **Convolution Layers** | 32 |
+| **Features** | 64 |
+| **Size** | Small (S) |
+| **Download** | [realesr-general-x4v3.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-x4v3.pth) |
+
+```bash
+# Download and use with custom scale
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-x4v3.pth -P weights
+python inference_realesrgan.py -n realesr-general-x4v3 -i inputs -s 2  # 2x upscaling
+```
+
+<Accordion title="Denoise Strength Control">
+  The `realesr-general-x4v3` model supports adjustable denoise strength:
+
+  ```bash
+  # Weak denoise (keep more original texture)
+  python inference_realesrgan.py -n realesr-general-x4v3 -i inputs -dn 0.2
+
+  # Strong denoise (smoother result)
+  python inference_realesrgan.py -n realesr-general-x4v3 -i inputs -dn 0.8
+  ```
+
+  The `-dn` parameter ranges from 0 (weak denoise) to 1 (strong denoise). Default is 0.5.
+</Accordion>
+
+### RealESRNet_x4plus
+
+<Note>
+  This model uses MSE loss instead of GAN training, resulting in over-smooth effects. Use this if you prefer less sharp, more natural-looking results.
+</Note>
+
+| Property | Value |
+| --- | --- |
+| **Scale** | 4x |
+| **Architecture** | RRDBNet |
+| **RRDB Blocks** | 23 |
+| **Training Loss** | MSE (no GAN) |
+| **Download** | [RealESRNet_x4plus.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.1/RealESRNet_x4plus.pth) |
+
+```bash
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.1/RealESRNet_x4plus.pth -P weights
+python inference_realesrgan.py -n RealESRNet_x4plus -i inputs -o outputs
+```
+
+## Legacy Model
+
+### ESRGAN (Official)
+
+The original ESRGAN model trained on DF2K and OST datasets:
+
+| Property | Value |
+| --- | --- |
+| **Scale** | 4x |
+| **Download** | [ESRGAN_SRx4_DF2KOST_official-ff704c30.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.1/ESRGAN_SRx4_DF2KOST_official-ff704c30.pth) |
+
+## Discriminator Models
+
+<Note>
+  Discriminator models are used for fine-tuning and training. You don't need these for inference.
+</Note>
+
+| Discriminator | Corresponding Generator Model |
+| --- | --- |
+| [RealESRGAN_x4plus_netD.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.3/RealESRGAN_x4plus_netD.pth) | RealESRGAN_x4plus |
+| [RealESRGAN_x2plus_netD.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.3/RealESRGAN_x2plus_netD.pth) | RealESRGAN_x2plus |
+
+## Model Comparison
+
+### Quality vs Speed
+
+```
+Quality:  RealESRGAN_x4plus > RealESRGAN_x2plus > realesr-general-x4v3 > RealESRNet_x4plus
+Speed:    realesr-general-x4v3 > RealESRNet_x4plus > RealESRGAN_x2plus > RealESRGAN_x4plus
+Memory:   realesr-general-x4v3 < RealESRNet_x4plus < RealESRGAN_x2plus < RealESRGAN_x4plus
+```
+
+### Use Case Recommendations
+
+<CardGroup cols={2}>
+  <Card title="Best Quality" icon="star">
+    **RealESRGAN_x4plus**
+    
+    Use for final production work where quality is paramount.
+  </Card>
+  <Card title="Fast Processing" icon="bolt">
+    **realesr-general-x4v3**
+    
+    Use for batch processing or when speed matters.
+  </Card>
+  <Card title="2x Upscaling" icon="expand">
+    **RealESRGAN_x2plus**
+    
+    Use when you only need 2x resolution increase.
+  </Card>
+  <Card title="Smooth Results" icon="paintbrush">
+    **RealESRNet_x4plus**
+    
+    Use for artistic or stylized results without sharpening.
+  </Card>
+</CardGroup>
+
+## Usage Examples
+
+### Basic Inference
+
+```bash
+# Using RealESRGAN_x4plus (recommended)
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs
+
+# Using lightweight model
+python inference_realesrgan.py -n realesr-general-x4v3 -i inputs
+
+# Custom output scale
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs -s 2  # 2x instead of 4x
+```
+
+### Advanced Options
+
+```bash
+# With tiling for large images
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs -t 400
+
+# With face enhancement
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs --face_enhance
+
+# Custom output folder and format
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs -o results --ext jpg
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Anime Models" icon="sparkles" href="/models/anime-models">
+    Learn about anime-specific models
+  </Card>
+  <Card title="Video Models" icon="film" href="/models/video-models">
+    Explore video upscaling models
+  </Card>
+</CardGroup>

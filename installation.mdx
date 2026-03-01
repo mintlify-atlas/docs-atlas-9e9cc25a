@@ -1,0 +1,192 @@
+---
+title: Installation
+description: Install Real-ESRGAN and its dependencies
+---
+
+## Prerequisites
+
+Before installing Real-ESRGAN, ensure you have the following requirements:
+
+<CardGroup cols={2}>
+  <Card title="Python" icon="python">
+    Python >= 3.7
+  </Card>
+  <Card title="PyTorch" icon="fire">
+    PyTorch >= 1.7
+  </Card>
+</CardGroup>
+
+<Note>
+  We recommend using [Anaconda](https://www.anaconda.com/download/#linux) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to manage your Python environment.
+</Note>
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    First, clone the Real-ESRGAN repository from GitHub:
+    
+    ```bash
+    git clone https://github.com/xinntao/Real-ESRGAN.git
+    cd Real-ESRGAN
+    ```
+  </Step>
+
+  <Step title="Install PyTorch">
+    Install PyTorch (version >= 1.7) according to your system configuration. Visit [pytorch.org](https://pytorch.org/) for installation instructions specific to your CUDA version.
+    
+    Example for CUDA 11.8:
+    ```bash
+    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+    ```
+    
+    Example for CPU only:
+    ```bash
+    pip install torch torchvision
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install the required Python packages:
+    
+    ```bash
+    # Install basicsr - https://github.com/xinntao/BasicSR
+    # We use BasicSR for both training and inference
+    pip install basicsr
+    
+    # facexlib and gfpgan are for face enhancement
+    pip install facexlib
+    pip install gfpgan
+    
+    # Install other dependencies
+    pip install -r requirements.txt
+    ```
+    
+    <Accordion title="View requirements.txt contents">
+      ```txt
+      basicsr>=1.4.2
+      facexlib>=0.2.5
+      gfpgan>=1.3.5
+      numpy
+      opencv-python
+      Pillow
+      torch>=1.7
+      torchvision
+      tqdm
+      ```
+    </Accordion>
+  </Step>
+
+  <Step title="Install Real-ESRGAN">
+    Install the Real-ESRGAN package in development mode:
+    
+    ```bash
+    python setup.py develop
+    ```
+    
+    <Note>
+      Using `develop` mode allows you to modify the source code and have changes take effect immediately without reinstalling.
+    </Note>
+  </Step>
+
+  <Step title="Verify Installation">
+    Verify that Real-ESRGAN is installed correctly:
+    
+    ```bash
+    python -c "import realesrgan; print('Real-ESRGAN installed successfully!')"
+    ```
+  </Step>
+</Steps>
+
+## Alternative: Install via pip
+
+For a simpler installation without cloning the repository, you can install Real-ESRGAN directly from PyPI:
+
+```bash
+pip install realesrgan
+```
+
+<Warning>
+  The pip package may not include the latest features and models. For development or access to all models, we recommend installing from the source repository.
+</Warning>
+
+## Package Dependencies
+
+Real-ESRGAN requires the following key packages:
+
+<AccordionGroup>
+  <Accordion title="basicsr (>= 1.4.2)" icon="cube">
+    BasicSR is an open-source image and video restoration toolbox used for both training and inference in Real-ESRGAN.
+  </Accordion>
+  
+  <Accordion title="facexlib (>= 0.2.5)" icon="face-smile">
+    A collection of face-related functions used for face detection and analysis.
+  </Accordion>
+  
+  <Accordion title="gfpgan (>= 1.3.5)" icon="wand-magic-sparkles">
+    GFPGAN (Generative Facial Prior GAN) is used for optional face enhancement in Real-ESRGAN.
+  </Accordion>
+  
+  <Accordion title="opencv-python" icon="image">
+    OpenCV is used for image I/O operations and basic image processing.
+  </Accordion>
+  
+  <Accordion title="torch (>= 1.7)" icon="fire">
+    PyTorch is the deep learning framework powering Real-ESRGAN's neural networks.
+  </Accordion>
+</AccordionGroup>
+
+## GPU Support
+
+<Note>
+  While Real-ESRGAN can run on CPU, using a GPU is **highly recommended** for practical performance. Image upscaling is significantly faster with CUDA-enabled GPUs.
+</Note>
+
+To check if PyTorch can access your GPU:
+
+```bash
+python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}'); print(f'GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None"}')"
+```
+
+## Portable Executables (Alternative)
+
+If you prefer not to set up a Python environment, portable executable files are available for Windows, Linux, and macOS:
+
+- [Windows](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip)
+- [Linux](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip)
+- [macOS](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-macos.zip)
+
+These executables use the NCNN framework and work on Intel/AMD/Nvidia GPUs without requiring Python or CUDA.
+
+<Warning>
+  The portable executables may not support all features available in the Python implementation (such as `--outscale` and `--face_enhance`).
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="ImportError: No module named 'basicsr'">
+    Make sure you've installed BasicSR:
+    ```bash
+    pip install basicsr
+    ```
+  </Accordion>
+  
+  <Accordion title="CUDA out of memory">
+    Try using the `--tile` option with a smaller tile size (e.g., `--tile 400`) to reduce memory usage during inference.
+  </Accordion>
+  
+  <Accordion title="PyTorch not using GPU">
+    Ensure you've installed the correct PyTorch version for your CUDA version. Visit [pytorch.org](https://pytorch.org/) to find the right installation command.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<Card
+  title="Quick Start Guide"
+  icon="rocket"
+  href="/quickstart"
+>
+  Learn how to upscale your first image with Real-ESRGAN
+</Card>

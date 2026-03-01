@@ -1,0 +1,141 @@
+---
+title: Introduction
+description: Real-ESRGAN - Practical Algorithms for General Image/Video Restoration
+---
+
+<img
+  className="block dark:hidden"
+  src="https://raw.githubusercontent.com/xinntao/Real-ESRGAN/master/assets/realesrgan_logo.png"
+  alt="Real-ESRGAN Logo"
+/>
+<img
+  className="hidden dark:block"
+  src="https://raw.githubusercontent.com/xinntao/Real-ESRGAN/master/assets/realesrgan_logo.png"
+  alt="Real-ESRGAN Logo"
+/>
+
+# Real-ESRGAN
+
+Real-ESRGAN aims at developing **Practical Algorithms for General Image/Video Restoration**. We extend the powerful ESRGAN to a practical restoration application, which is trained with pure synthetic data.
+
+<img
+  src="https://raw.githubusercontent.com/xinntao/Real-ESRGAN/master/assets/teaser.jpg"
+  alt="Real-ESRGAN Comparison"
+/>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card
+    title="Multiple Models"
+    icon="layer-group"
+    href="#available-models"
+  >
+    Specialized models for general images, anime illustrations, and anime videos
+  </Card>
+  <Card
+    title="Easy Installation"
+    icon="download"
+    href="/installation"
+  >
+    Simple pip installation with Python >= 3.7 and PyTorch >= 1.7
+  </Card>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Get started with upscaling in just a few lines of code
+  </Card>
+  <Card
+    title="Face Enhancement"
+    icon="face-smile"
+    href="/quickstart#face-enhancement"
+  >
+    Integrated GFPGAN support for enhancing faces in images
+  </Card>
+</CardGroup>
+
+## Available Models
+
+Real-ESRGAN provides several pre-trained models optimized for different use cases:
+
+<AccordionGroup>
+  <Accordion title="RealESRGAN_x4plus" icon="image" defaultOpen>
+    The default model for general image super-resolution with 4x upscaling. Best for photographs and natural images.
+  </Accordion>
+  
+  <Accordion title="RealESRGAN_x4plus_anime_6B" icon="wand-magic-sparkles">
+    Optimized for anime illustrations with a smaller model size (6 blocks). Provides excellent results for anime-style artwork.
+  </Accordion>
+  
+  <Accordion title="realesr-animevideov3" icon="film">
+    Specialized model for anime videos with a compact architecture. Ideal for processing anime video frames.
+  </Accordion>
+  
+  <Accordion title="realesr-general-x4v3" icon="sparkles">
+    A tiny model for general scenes with denoising support. Use the `-dn` option to balance noise and avoid over-smooth results.
+  </Accordion>
+  
+  <Accordion title="RealESRGAN_x2plus" icon="expand">
+    2x upscaling model for cases where 4x is too aggressive.
+  </Accordion>
+  
+  <Accordion title="RealESRNet_x4plus" icon="network-wired">
+    Alternative 4x model with different training characteristics.
+  </Accordion>
+</AccordionGroup>
+
+## Research Paper
+
+<Note>
+  Real-ESRGAN: Training Real-World Blind Super-Resolution with Pure Synthetic Data
+  
+  **Authors:** Xintao Wang, Liangbin Xie, Chao Dong, Ying Shan
+  
+  **Affiliation:** Tencent ARC Lab; Shenzhen Institutes of Advanced Technology, Chinese Academy of Sciences
+  
+  **Publication:** International Conference on Computer Vision Workshops (ICCVW), 2021
+</Note>
+
+[Read the Paper](https://arxiv.org/abs/2107.10833) | [Watch YouTube Video](https://www.youtube.com/watch?v=fxHWoDSSvSc) | [View Poster](https://xinntao.github.io/projects/RealESRGAN_src/RealESRGAN_poster.pdf)
+
+## Try It Online
+
+Before installing locally, you can try Real-ESRGAN online:
+
+- [Replicate Demo](https://replicate.com/xinntao/realesrgan) - Web-based interface
+- [Google Colab (General)](https://colab.research.google.com/drive/1k2Zod6kSHEvraybHl50Lys0LerhyTMCo?usp=sharing) - Interactive notebook for images
+- [Google Colab (Anime Videos)](https://colab.research.google.com/drive/1yNl9ORUxxlL4N0keJa2SEPB61imPQd1B?usp=sharing) - Interactive notebook for anime videos
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Installation"
+    icon="download"
+    href="/installation"
+  >
+    Install Real-ESRGAN and its dependencies
+  </Card>
+  <Card
+    title="Quick Start"
+    icon="play"
+    href="/quickstart"
+  >
+    Run your first image upscaling example
+  </Card>
+</CardGroup>
+
+## Citation
+
+If you use Real-ESRGAN in your research, please cite:
+
+```bibtex
+@InProceedings{wang2021realesrgan,
+    author    = {Xintao Wang and Liangbin Xie and Chao Dong and Ying Shan},
+    title     = {Real-ESRGAN: Training Real-World Blind Super-Resolution with Pure Synthetic Data},
+    booktitle = {International Conference on Computer Vision Workshops (ICCVW)},
+    date      = {2021}
+}
+```

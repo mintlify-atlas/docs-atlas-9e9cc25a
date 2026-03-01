@@ -1,0 +1,246 @@
+---
+title: RealESRGANer
+description: Main inference class for upsampling images with Real-ESRGAN models
+---
+
+## Overview
+
+`RealESRGANer` is the primary helper class for upsampling images with Real-ESRGAN. It handles model loading, preprocessing, tiled inference for large images, and post-processing.
+
+## Class Definition
+
+### RealESRGANer
+
+```python
+from realesrgan import RealESRGANer
+
+upsampler = RealESRGANer(
+    scale=4,
+    model_path='weights/RealESRGAN_x4plus.pth',
+    model=model,
+    tile=0,
+    tile_pad=10,
+    pre_pad=10,
+    half=False,
+    device=None,
+    gpu_id=None,
+    dni_weight=None
+)
+```
+
+#### Parameters
+
+<ParamField path="scale" type="int" required>
+  Upsampling scale factor used in the networks. Typically 2 or 4.
+</ParamField>
+
+<ParamField path="model_path" type="str | list[str]" required>
+  Path to the pretrained model. Can be:
+  - Local file path
+  - URL (will be downloaded automatically)
+  - List of two paths for Deep Network Interpolation (DNI)
+</ParamField>
+
+<ParamField path="model" type="nn.Module" required>
+  The defined neural network model (e.g., RRDBNet or SRVGGNetCompact).
+</ParamField>
+
+<ParamField path="tile" type="int" default="0">
+  Tile size for processing large images in chunks to avoid GPU memory issues. Set to 0 to disable tiling.
+</ParamField>
+
+<ParamField path="tile_pad" type="int" default="10">
+  Padding size for each tile to remove border artifacts during tiled inference.
+</ParamField>
+
+<ParamField path="pre_pad" type="int" default="10">
+  Padding size added to input images before processing to avoid border artifacts.
+</ParamField>
+
+<ParamField path="half" type="bool" default="False">
+  Whether to use half precision (FP16) during inference for faster processing and lower memory usage.
+</ParamField>
+
+<ParamField path="device" type="torch.device" default="None">
+  The torch device to use. If None, automatically selects CUDA if available, otherwise CPU.
+</ParamField>
+
+<ParamField path="gpu_id" type="int" default="None">
+  Specific GPU device ID to use (e.g., 0, 1, 2 for multi-GPU systems).
+</ParamField>
+
+<ParamField path="dni_weight" type="list[float]" default="None">
+  Weights for Deep Network Interpolation when using two models. Must sum to 1.0 (e.g., [0.5, 0.5]).
+</ParamField>
+
+## Methods
+
+### enhance()
+
+Main method to upscale an input image.
+
+```python
+output, img_mode = upsampler.enhance(
+    img,
+    outscale=None,
+    alpha_upsampler='realesrgan'
+)
+```
+
+#### Parameters
+
+<ParamField path="img" type="numpy.ndarray" required>
+  Input image as a numpy array (BGR format from OpenCV). Supports:
+  - 8-bit images (0-255)
+  - 16-bit images (0-65535)
+  - Grayscale (2D array)
+  - RGB (H×W×3)
+  - RGBA with alpha channel (H×W×4)
+</ParamField>
+
+<ParamField path="outscale" type="float" default="None">
+  Final output scale. If different from the model's scale, the output will be resized using Lanczos interpolation.
+</ParamField>
+
+<ParamField path="alpha_upsampler" type="str" default="'realesrgan'">
+  Method to upscale the alpha channel for RGBA images. Options:
+  - `'realesrgan'`: Use the same model
+  - `'bicubic'`: Use OpenCV's bicubic interpolation
+</ParamField>
+
+#### Returns
+
+<ResponseField name="output" type="numpy.ndarray">
+  Upsampled image as a numpy array with the same bit depth as input (uint8 or uint16).
+</ResponseField>
+
+<ResponseField name="img_mode" type="str">
+  Image mode: 'L' (grayscale), 'RGB', or 'RGBA'.
+</ResponseField>
+
+### pre_process()
+
+Preprocesses the input image with padding to ensure divisibility.
+
+```python
+upsampler.pre_process(img)
+```
+
+<ParamField path="img" type="numpy.ndarray" required>
+  Input image as numpy array (RGB format, normalized to [0, 1]).
+</ParamField>
+
+<Note>
+  This method converts the image to a PyTorch tensor, applies pre-padding and mod-padding, and stores the result in `self.img`.
+</Note>
+
+### post_process()
+
+Removes padding added during preprocessing and returns the final output.
+
+```python
+output_tensor = upsampler.post_process()
+```
+
+#### Returns
+
+<ResponseField name="output" type="torch.Tensor">
+  Processed output tensor with padding removed.
+</ResponseField>
+
+## Usage Examples
+
+### Basic Upsampling
+
+```python
+import cv2
+from basicsr.archs.rrdbnet_arch import RRDBNet
+from realesrgan import RealESRGANer
+
+# Define the model
+model = RRDBNet(
+    num_in_ch=3,
+    num_out_ch=3,
+    num_feat=64,
+    num_block=23,
+    num_grow_ch=32,
+    scale=4
+)
+
+# Initialize upsampler
+upsampler = RealESRGANer(
+    scale=4,
+    model_path='weights/RealESRGAN_x4plus.pth',
+    model=model,
+    tile=0,
+    tile_pad=10,
+    pre_pad=0,
+    half=False
+)
+
+# Read and upscale image
+img = cv2.imread('input.jpg', cv2.IMREAD_UNCHANGED)
+output, _ = upsampler.enhance(img, outscale=4)
+
+# Save result
+cv2.imwrite('output.png', output)
+```
+
+### Tiled Inference for Large Images
+
+```python
+# For large images, use tiling to avoid GPU memory issues
+upsampler = RealESRGANer(
+    scale=4,
+    model_path='weights/RealESRGAN_x4plus.pth',
+    model=model,
+    tile=512,        # Process in 512×512 tiles
+    tile_pad=10,
+    pre_pad=0,
+    half=True        # Use FP16 for faster inference
+)
+
+output, _ = upsampler.enhance(img, outscale=4)
+```
+
+### Deep Network Interpolation (DNI)
+
+```python
+# Blend two models for custom denoise strength
+upsampler = RealESRGANer(
+    scale=4,
+    model_path=[
+        'weights/realesr-general-x4v3.pth',
+        'weights/realesr-general-wdn-x4v3.pth'
+    ],
+    dni_weight=[0.5, 0.5],  # 50% each model
+    model=model,
+    tile=0,
+    tile_pad=10,
+    pre_pad=0,
+    half=False
+)
+
+output, _ = upsampler.enhance(img)
+```
+
+### RGBA Image with Alpha Channel
+
+```python
+# Read RGBA image with transparency
+img = cv2.imread('input.png', cv2.IMREAD_UNCHANGED)
+
+# Upscale with Real-ESRGAN for alpha channel
+output, img_mode = upsampler.enhance(
+    img,
+    outscale=4,
+    alpha_upsampler='realesrgan'
+)
+
+print(f"Image mode: {img_mode}")  # 'RGBA'
+cv2.imwrite('output.png', output)
+```
+
+## Source Reference
+
+Implemented in `realesrgan/utils.py:14`

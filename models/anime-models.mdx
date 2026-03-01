@@ -1,0 +1,240 @@
+---
+title: 'Anime Models'
+description: 'Models optimized for anime images, illustrations, and manga'
+---
+
+Real-ESRGAN provides specialized models for anime content, trained specifically to handle the unique characteristics of anime artwork, manga, and illustrations.
+
+## RealESRGAN_x4plus_anime_6B
+
+<Note>
+  This model is optimized specifically for anime images with a smaller network architecture (6 RRDB blocks) for efficient processing while maintaining high quality.
+</Note>
+
+### Model Specifications
+
+| Property | Value |
+| --- | --- |
+| **Scale** | 4x |
+| **Architecture** | RRDBNet |
+| **RRDB Blocks** | 6 (vs 23 in general model) |
+| **Features** | 64 |
+| **Growth Channels** | 32 |
+| **Optimization** | Anime-specific training data |
+| **Download** | [RealESRGAN_x4plus_anime_6B.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth) |
+
+### Key Features
+
+<CardGroup cols={2}>
+  <Card title="Anime-Optimized" icon="sparkles">
+    Trained specifically on anime images for better line preservation and color handling
+  </Card>
+  <Card title="Compact Network" icon="cube">
+    Only 6 RRDB blocks (vs 23 in general model) for faster processing
+  </Card>
+  <Card title="Sharp Lines" icon="pen">
+    Preserves crisp anime line art without over-smoothing
+  </Card>
+  <Card title="Vibrant Colors" icon="palette">
+    Maintains anime color characteristics and gradients
+  </Card>
+</CardGroup>
+
+## Usage
+
+### PyTorch Inference
+
+```bash
+# Download the model
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth -P weights
+
+# Run inference
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i inputs
+```
+
+### NCNN (Portable Executable)
+
+For Windows, Linux, or MacOS without Python installation:
+
+<Steps>
+  <Step title="Download NCNN Executable">
+    Download the portable executable for your platform:
+    - [Windows](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip)
+    - [Linux](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip)
+    - [MacOS](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-macos.zip)
+  </Step>
+  
+  <Step title="Extract and Run">
+    ```bash
+    # Windows
+    ./realesrgan-ncnn-vulkan.exe -i input.jpg -o output.png -n realesrgan-x4plus-anime
+    
+    # Linux/MacOS
+    ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -n realesrgan-x4plus-anime
+    ```
+  </Step>
+</Steps>
+
+## Comparisons with waifu2x
+
+Real-ESRGAN anime model provides significant improvements over waifu2x, especially in detail preservation and artifact reduction.
+
+<Note>
+  Comparison with waifu2x using `-n 2 -s 4` settings
+</Note>
+
+### Visual Comparison Examples
+
+<img src="https://raw.githubusercontent.com/xinntao/public-figures/master/Real-ESRGAN/cmp_realesrgan_anime_1.png" alt="Anime comparison 1" />
+
+<img src="https://raw.githubusercontent.com/xinntao/public-figures/master/Real-ESRGAN/cmp_realesrgan_anime_2.png" alt="Anime comparison 2" />
+
+<img src="https://raw.githubusercontent.com/xinntao/public-figures/master/Real-ESRGAN/cmp_realesrgan_anime_3.png" alt="Anime comparison 3" />
+
+<img src="https://raw.githubusercontent.com/xinntao/public-figures/master/Real-ESRGAN/cmp_realesrgan_anime_4.png" alt="Anime comparison 4" />
+
+<img src="https://raw.githubusercontent.com/xinntao/public-figures/master/Real-ESRGAN/cmp_realesrgan_anime_5.png" alt="Anime comparison 5" />
+
+### Advantages Over waifu2x
+
+<CardGroup cols={2}>
+  <Card title="Better Detail Recovery" icon="magnifying-glass-plus">
+    Recovers fine details in hair, clothing textures, and background elements
+  </Card>
+  <Card title="Reduced Artifacts" icon="shield-check">
+    Fewer compression artifacts and smoother gradients
+  </Card>
+  <Card title="Line Preservation" icon="pen">
+    Maintains crisp line art without introducing halos or blur
+  </Card>
+  <Card title="Color Accuracy" icon="palette">
+    Better preservation of original anime color characteristics
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+### For Anime Images
+
+<AccordionGroup>
+  <Accordion title="Line Art and Manga">
+    The anime model excels at preserving clean line art:
+    
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i manga_pages
+    ```
+  </Accordion>
+
+  <Accordion title="Colored Illustrations">
+    Works great for colored anime artwork:
+    
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime_art
+    ```
+  </Accordion>
+
+  <Accordion title="Screenshots">
+    Ideal for upscaling anime screenshots:
+    
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i screenshots
+    ```
+  </Accordion>
+
+  <Accordion title="Large Images">
+    Use tiling for large manga pages or illustrations:
+    
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i inputs -t 512
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Command Options
+
+```bash
+# Basic usage
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i inputs -o outputs
+
+# With tiling (for large images)
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i inputs -t 512
+
+# Custom output scale (2x instead of 4x)
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i inputs -s 2
+
+# Save as PNG
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i inputs --ext png
+```
+
+## Model Architecture Comparison
+
+### Anime vs General Model
+
+| Feature | RealESRGAN_x4plus_anime_6B | RealESRGAN_x4plus |
+| --- | --- | --- |
+| **RRDB Blocks** | 6 | 23 |
+| **Parameters** | Fewer | More |
+| **Speed** | Faster | Slower |
+| **Memory Usage** | Lower | Higher |
+| **Training Data** | Anime-specific | General images |
+| **Best For** | Anime, manga, illustrations | Natural photos |
+
+<Note>
+  The anime model's smaller architecture (6 blocks) makes it approximately **3-4x faster** than the general model while maintaining high quality for anime content.
+</Note>
+
+## Discriminator Model
+
+<Accordion title="For Fine-tuning">
+  If you need to fine-tune the anime model on your own dataset:
+
+  | Property | Value |
+  | --- | --- |
+  | **Discriminator** | [RealESRGAN_x4plus_anime_6B_netD.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B_netD.pth) |
+  | **Corresponding Generator** | RealESRGAN_x4plus_anime_6B |
+
+  This discriminator model is used during GAN training and is not needed for inference.
+</Accordion>
+
+## Performance Tips
+
+<CardGroup cols={2}>
+  <Card title="Batch Processing" icon="layer-group">
+    Process multiple images efficiently:
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i input_folder
+    ```
+  </Card>
+  
+  <Card title="GPU Memory" icon="memory">
+    Use tiling for large images:
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i inputs -t 400
+    ```
+  </Card>
+  
+  <Card title="Custom Scale" icon="expand">
+    Output at different scales:
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i inputs -s 2
+    ```
+  </Card>
+  
+  <Card title="Format Control" icon="image">
+    Control output format:
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i inputs --ext png
+    ```
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Video Models" icon="film" href="/models/video-models">
+    Learn about anime video upscaling
+  </Card>
+  <Card title="General Models" icon="image" href="/models/general-models">
+    Explore models for natural images
+  </Card>
+</CardGroup>

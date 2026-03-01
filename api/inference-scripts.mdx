@@ -1,0 +1,329 @@
+---
+title: 'Inference Scripts'
+description: 'Command-line interfaces for image and video upsampling'
+---
+
+## inference_realesrgan.py
+
+Command-line script for upsampling images using Real-ESRGAN models.
+
+### Usage
+
+```bash
+python inference_realesrgan.py -i inputs -o results -n RealESRGAN_x4plus
+```
+
+### Arguments
+
+<ParamField path="-i, --input" type="str" default="inputs">
+  Input image or folder path
+</ParamField>
+
+<ParamField path="-n, --model_name" type="str" default="RealESRGAN_x4plus">
+  Model name to use for inference
+  
+  **Available models:**
+  - `RealESRGAN_x4plus` - General 4x upsampling
+  - `RealESRNet_x4plus` - 4x upsampling without GAN
+  - `RealESRGAN_x4plus_anime_6B` - Anime images 4x
+  - `RealESRGAN_x2plus` - General 2x upsampling
+  - `realesr-animevideov3` - Anime video 4x
+  - `realesr-general-x4v3` - General purpose 4x with denoise control
+</ParamField>
+
+<ParamField path="-o, --output" type="str" default="results">
+  Output folder path
+</ParamField>
+
+<ParamField path="-dn, --denoise_strength" type="float" default="0.5">
+  Denoise strength. Range: 0 (weak denoise, keep noise) to 1 (strong denoise ability)
+  
+  Only used for the `realesr-general-x4v3` model
+</ParamField>
+
+<ParamField path="-s, --outscale" type="float" default="4">
+  The final upsampling scale of the image
+</ParamField>
+
+<ParamField path="--model_path" type="str" default="None">
+  Optional custom model path. Usually not needed as models are downloaded automatically
+</ParamField>
+
+<ParamField path="--suffix" type="str" default="out">
+  Suffix of the restored image filename
+</ParamField>
+
+<ParamField path="-t, --tile" type="int" default="0">
+  Tile size for processing. 0 means no tiling. Use tiling to avoid out-of-memory errors with large images
+</ParamField>
+
+<ParamField path="--tile_pad" type="int" default="10">
+  Tile padding size to reduce border artifacts
+</ParamField>
+
+<ParamField path="--pre_pad" type="int" default="0">
+  Pre-padding size at each border
+</ParamField>
+
+<ParamField path="--face_enhance" type="bool">
+  Use GFPGAN to enhance faces in the image (flag, no value needed)
+</ParamField>
+
+<ParamField path="--fp32" type="bool">
+  Use fp32 (full) precision during inference. Default is fp16 (half precision)
+</ParamField>
+
+<ParamField path="--alpha_upsampler" type="str" default="realesrgan">
+  The upsampler for alpha channels (transparency)
+  
+  **Options:** `realesrgan` | `bicubic`
+</ParamField>
+
+<ParamField path="--ext" type="str" default="auto">
+  Output image extension
+  
+  **Options:** `auto` | `jpg` | `png`
+  
+  `auto` uses the same extension as the input
+</ParamField>
+
+<ParamField path="-g, --gpu-id" type="int" default="None">
+  GPU device to use. Can be 0, 1, 2, etc. for multi-GPU systems
+</ParamField>
+
+### Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Upscale a single image
+python inference_realesrgan.py -i input.jpg -o output_folder -n RealESRGAN_x4plus
+```
+
+```bash Batch Processing
+# Upscale all images in a folder
+python inference_realesrgan.py -i inputs/ -o results/ -n RealESRGAN_x4plus -s 4
+```
+
+```bash Anime Images
+# Use anime-specific model
+python inference_realesrgan.py -i anime.png -o results/ -n RealESRGAN_x4plus_anime_6B
+```
+
+```bash With Tiling
+# Process large images with tiling to avoid OOM
+python inference_realesrgan.py -i large_image.png -o results/ -t 400 --tile_pad 10
+```
+
+```bash Face Enhancement
+# Enhance faces using GFPGAN
+python inference_realesrgan.py -i portrait.jpg -o results/ -n RealESRGAN_x4plus --face_enhance
+```
+
+```bash Custom Scale
+# Upscale to 2x instead of 4x
+python inference_realesrgan.py -i input.jpg -o results/ -n RealESRGAN_x4plus -s 2
+```
+
+```bash Denoise Control
+# Use general model with custom denoise strength
+python inference_realesrgan.py -i noisy.jpg -o results/ -n realesr-general-x4v3 -dn 0.8
+```
+
+```bash Specify GPU
+# Use specific GPU device
+python inference_realesrgan.py -i input.jpg -o results/ -g 1
+```
+</CodeGroup>
+
+<Note>
+**Memory Management:**
+If you encounter CUDA out of memory errors, try using the `--tile` option with a smaller tile size (e.g., `-t 200` or `-t 400`). Tiling processes the image in smaller chunks at the cost of slightly slower processing.
+</Note>
+
+<Note>
+**File Formats:**
+RGBA images (with transparency) are automatically saved as PNG regardless of the `--ext` setting to preserve the alpha channel.
+</Note>
+
+## inference_realesrgan_video.py
+
+Command-line script for upsampling videos using Real-ESRGAN models. Optimized for anime videos.
+
+### Usage
+
+```bash
+python inference_realesrgan_video.py -i video.mp4 -o results -n realesr-animevideov3
+```
+
+### Arguments
+
+<ParamField path="-i, --input" type="str" default="inputs">
+  Input video, image, or folder path
+</ParamField>
+
+<ParamField path="-n, --model_name" type="str" default="realesr-animevideov3">
+  Model name to use for inference
+  
+  **Available models:**
+  - `realesr-animevideov3` - Optimized for anime videos (default)
+  - `RealESRGAN_x4plus_anime_6B` - Anime images/videos 4x
+  - `RealESRGAN_x4plus` - General 4x upsampling
+  - `RealESRNet_x4plus` - 4x upsampling without GAN
+  - `RealESRGAN_x2plus` - General 2x upsampling
+  - `realesr-general-x4v3` - General purpose 4x with denoise control
+</ParamField>
+
+<ParamField path="-o, --output" type="str" default="results">
+  Output folder path
+</ParamField>
+
+<ParamField path="-dn, --denoise_strength" type="float" default="0.5">
+  Denoise strength. Range: 0 (weak denoise, keep noise) to 1 (strong denoise ability)
+  
+  Only used for the `realesr-general-x4v3` model
+</ParamField>
+
+<ParamField path="-s, --outscale" type="float" default="4">
+  The final upsampling scale of the video
+</ParamField>
+
+<ParamField path="--suffix" type="str" default="out">
+  Suffix of the restored video filename
+</ParamField>
+
+<ParamField path="-t, --tile" type="int" default="0">
+  Tile size for processing. 0 means no tiling. Use tiling to avoid out-of-memory errors
+</ParamField>
+
+<ParamField path="--tile_pad" type="int" default="10">
+  Tile padding size to reduce border artifacts
+</ParamField>
+
+<ParamField path="--pre_pad" type="int" default="0">
+  Pre-padding size at each border
+</ParamField>
+
+<ParamField path="--face_enhance" type="bool">
+  Use GFPGAN to enhance faces in the video (flag, no value needed)
+  
+  Note: Automatically disabled for anime models
+</ParamField>
+
+<ParamField path="--fp32" type="bool">
+  Use fp32 (full) precision during inference. Default is fp16 (half precision)
+</ParamField>
+
+<ParamField path="--fps" type="float" default="None">
+  FPS of the output video. If not specified, uses the input video's FPS
+</ParamField>
+
+<ParamField path="--ffmpeg_bin" type="str" default="ffmpeg">
+  Path to the ffmpeg binary
+</ParamField>
+
+<ParamField path="--extract_frame_first" type="bool">
+  Extract frames to disk before processing (flag, no value needed). Can be useful for certain workflows
+</ParamField>
+
+<ParamField path="--num_process_per_gpu" type="int" default="1">
+  Number of processes to spawn per GPU for parallel processing
+</ParamField>
+
+<ParamField path="--alpha_upsampler" type="str" default="realesrgan">
+  The upsampler for alpha channels (transparency)
+  
+  **Options:** `realesrgan` | `bicubic`
+</ParamField>
+
+<ParamField path="--ext" type="str" default="auto">
+  Image extension when processing image folders
+  
+  **Options:** `auto` | `jpg` | `png`
+</ParamField>
+
+### Examples
+
+<CodeGroup>
+```bash Basic Video Upscaling
+# Upscale anime video with default settings
+python inference_realesrgan_video.py -i anime_video.mp4 -o results/
+```
+
+```bash Custom Model
+# Use RealESRGAN_x4plus for general videos
+python inference_realesrgan_video.py -i video.mp4 -o results/ -n RealESRGAN_x4plus
+```
+
+```bash With Tiling
+# Process with tiling to manage memory
+python inference_realesrgan_video.py -i video.mp4 -o results/ -t 400
+```
+
+```bash Custom FPS
+# Set output FPS
+python inference_realesrgan_video.py -i video.mp4 -o results/ --fps 60
+```
+
+```bash Multi-GPU Processing
+# Use 2 processes per GPU for faster processing
+python inference_realesrgan_video.py -i video.mp4 -o results/ --num_process_per_gpu 2
+```
+
+```bash Extract Frames First
+# Extract frames before processing
+python inference_realesrgan_video.py -i video.mp4 -o results/ --extract_frame_first
+```
+
+```bash Custom Scale
+# Upscale to 2x instead of 4x
+python inference_realesrgan_video.py -i video.mp4 -o results/ -s 2
+```
+
+```bash Full Precision
+# Use FP32 for maximum quality
+python inference_realesrgan_video.py -i video.mp4 -o results/ --fp32
+```
+</CodeGroup>
+
+<Note>
+**Performance Warning:**
+If you are generating videos larger than 4K resolution, processing will be very slow due to I/O speed limitations. It is highly recommended to decrease the `--outscale` value.
+</Note>
+
+<Note>
+**Multi-GPU Processing:**
+The script automatically detects available GPUs and can process video segments in parallel. Use `--num_process_per_gpu` to control how many processes run per GPU. For example, with 2 GPUs and `--num_process_per_gpu 2`, a total of 4 processes will run in parallel.
+</Note>
+
+<Note>
+**FLV Format:**
+If the input is a `.flv` file, the script automatically converts it to `.mp4` using ffmpeg before processing.
+</Note>
+
+<Note>
+**Audio Preservation:**
+The script automatically preserves the audio track from the input video in the output video.
+</Note>
+
+### Helper Classes
+
+The video inference script includes two helper classes:
+
+#### Reader
+
+Handles reading frames from videos, images, or folders. Supports streaming from video files using ffmpeg.
+
+**Methods:**
+- `get_resolution()` - Returns (height, width) of the input
+- `get_fps()` - Returns the FPS of the video
+- `get_audio()` - Returns the audio stream
+- `get_frame()` - Returns the next frame
+- `close()` - Closes the stream reader
+
+#### Writer
+
+Handles writing frames to output video using ffmpeg with H.264 encoding.
+
+**Methods:**
+- `write_frame(frame)` - Writes a frame to the output video
+- `close()` - Finalizes and closes the output video

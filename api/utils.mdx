@@ -1,0 +1,208 @@
+---
+title: 'Utility Functions'
+description: 'Helper classes for image processing and I/O operations'
+---
+
+## PrefetchReader
+
+A threaded image prefetch reader for efficient batch processing.
+
+```python
+from realesrgan.utils import PrefetchReader
+
+reader = PrefetchReader(img_list, num_prefetch_queue=3)
+for img in reader:
+    # Process image
+    pass
+```
+
+### Parameters
+
+<ParamField path="img_list" type="list[str]" required>
+  A list of image file paths to be read
+</ParamField>
+
+<ParamField path="num_prefetch_queue" type="int" required>
+  Number of images to prefetch in the queue
+</ParamField>
+
+### Methods
+
+#### run()
+
+Starts the prefetch thread. Reads images from the list and puts them in the queue.
+
+#### __next__()
+
+Returns the next prefetched image from the queue.
+
+**Returns:** `numpy.ndarray` - The next image in BGR format
+
+**Raises:** `StopIteration` when no more images are available
+
+#### __iter__()
+
+Returns the iterator object (self).
+
+### Usage Example
+
+<CodeGroup>
+```python Image Batch Processing
+import glob
+from realesrgan.utils import PrefetchReader
+
+# Get list of image paths
+img_paths = sorted(glob.glob('inputs/*.png'))
+
+# Create prefetch reader with queue size of 3
+reader = PrefetchReader(img_paths, num_prefetch_queue=3)
+reader.start()  # Start the prefetch thread
+
+# Iterate through prefetched images
+for idx, img in enumerate(reader):
+    print(f'Processing image {idx}: {img.shape}')
+    # Your processing logic here
+```
+
+```python With RealESRGANer
+from realesrgan import RealESRGANer
+from realesrgan.utils import PrefetchReader
+import cv2
+
+img_list = ['img1.png', 'img2.png', 'img3.png']
+reader = PrefetchReader(img_list, num_prefetch_queue=2)
+reader.start()
+
+upsampler = RealESRGANer(...)
+
+for img in reader:
+    output, _ = upsampler.enhance(img)
+    cv2.imwrite('output.png', output)
+```
+</CodeGroup>
+
+<Note>
+The PrefetchReader uses threading to read images asynchronously, which can significantly improve performance when processing large batches of images by overlapping I/O and computation.
+</Note>
+
+## IOConsumer
+
+A threaded consumer for asynchronous image writing operations.
+
+```python
+from realesrgan.utils import IOConsumer
+import queue
+
+write_queue = queue.Queue()
+consumer = IOConsumer(opt, write_queue, qid=0)
+consumer.start()
+```
+
+### Parameters
+
+<ParamField path="opt" type="object" required>
+  Options object containing configuration parameters
+</ParamField>
+
+<ParamField path="que" type="queue.Queue" required>
+  Queue object for receiving write tasks
+</ParamField>
+
+<ParamField path="qid" type="int" required>
+  Worker ID for the consumer thread
+</ParamField>
+
+### Methods
+
+#### run()
+
+Runs the consumer loop. Continuously reads messages from the queue and writes images to disk.
+
+**Message format:**
+```python
+{
+    'output': numpy.ndarray,  # Image to write
+    'save_path': str          # Destination path
+}
+```
+
+To stop the consumer, send the string `'quit'` to the queue.
+
+### Usage Example
+
+<CodeGroup>
+```python Async Image Writing
+import queue
+import cv2
+from realesrgan.utils import IOConsumer
+
+# Create write queue and consumer
+write_queue = queue.Queue(maxsize=10)
+consumer = IOConsumer(opt, write_queue, qid=0)
+consumer.start()
+
+# Process images and queue for async writing
+for img_path in image_paths:
+    img = cv2.imread(img_path)
+    output = process_image(img)  # Your processing
+    
+    # Queue the write operation
+    write_queue.put({
+        'output': output,
+        'save_path': f'results/{img_path}'
+    })
+
+# Signal completion
+write_queue.put('quit')
+consumer.join()
+```
+
+```python Multiple Writers
+import queue
+from realesrgan.utils import IOConsumer
+
+num_writers = 3
+write_queue = queue.Queue(maxsize=20)
+
+# Start multiple consumer threads
+consumers = []
+for i in range(num_writers):
+    consumer = IOConsumer(opt, write_queue, qid=i)
+    consumer.start()
+    consumers.append(consumer)
+
+# Process and write images
+for output, save_path in results:
+    write_queue.put({
+        'output': output,
+        'save_path': save_path
+    })
+
+# Stop all consumers
+for _ in consumers:
+    write_queue.put('quit')
+
+for consumer in consumers:
+    consumer.join()
+```
+</CodeGroup>
+
+<Note>
+The IOConsumer allows you to offload disk I/O operations to a separate thread, preventing write operations from blocking your main processing pipeline. This is especially useful when processing large batches of high-resolution images.
+</Note>
+
+## Constants
+
+### ROOT_DIR
+
+The root directory of the Real-ESRGAN package.
+
+```python
+from realesrgan.utils import ROOT_DIR
+
+model_path = os.path.join(ROOT_DIR, 'weights', 'model.pth')
+```
+
+**Type:** `str`
+
+**Value:** The directory containing the Real-ESRGAN package (parent directory of `realesrgan/`)

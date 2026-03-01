@@ -1,0 +1,390 @@
+---
+title: Fine-tuning Real-ESRGAN
+description: Adapt Real-ESRGAN to your custom dataset
+---
+
+Fine-tuning allows you to adapt a pre-trained Real-ESRGAN model to your specific image domain or dataset. This is faster than training from scratch and often produces better results for specialized use cases.
+
+## When to Fine-tune
+
+Consider fine-tuning when:
+
+- You have domain-specific images (faces, anime, medical images, etc.)
+- The pre-trained model doesn't perform well on your images
+- You want to specialize the model for a particular type of degradation
+- You have a small custom dataset (hundreds to thousands of images)
+
+<Note>
+  Fine-tuning typically requires much less training time (tens of thousands of iterations vs. millions) because you start from a well-trained model.
+</Note>
+
+## Two Fine-tuning Approaches
+
+Real-ESRGAN supports two fine-tuning strategies:
+
+<CardGroup cols={2}>
+  <Card title="On-the-fly Degradation" icon="shuffle">
+    Only high-resolution images required. Low-quality images generated during training.
+    
+    **Best for**: General super-resolution with synthetic degradations
+  </Card>
+  
+  <Card title="Paired Data" icon="images">
+    Use your own paired high-resolution and low-resolution images.
+    
+    **Best for**: Specific degradation types or real-world degraded images
+  </Card>
+</CardGroup>
+
+## Method 1: On-the-fly Degradation
+
+This method generates degraded images during training using Real-ESRGAN's degradation model.
+
+### Step 1: Prepare Dataset
+
+Only high-resolution images are needed. Follow the standard [dataset preparation](/training/dataset-preparation) steps:
+
+<Steps>
+  <Step title="Organize Images">
+    Place your HR images in a folder (e.g., `datasets/my_dataset/HR`)
+  </Step>
+  
+  <Step title="Optional: Multi-scale">
+    Generate multi-scale images if desired:
+    ```bash
+    python scripts/generate_multiscale_DF2K.py --input datasets/my_dataset/HR --output datasets/my_dataset/multiscale
+    ```
+  </Step>
+  
+  <Step title="Optional: Crop">
+    Crop to sub-images for faster training:
+    ```bash
+    python scripts/extract_subimages.py --input datasets/my_dataset/multiscale --output datasets/my_dataset/sub --crop_size 400 --step 200
+    ```
+  </Step>
+  
+  <Step title="Generate Meta Info">
+    Create the meta info file:
+    ```bash
+    python scripts/generate_meta_info.py --input datasets/my_dataset/HR --root datasets/my_dataset --meta_info datasets/my_dataset/meta_info.txt
+    ```
+  </Step>
+</Steps>
+
+### Step 2: Download Pre-trained Models
+
+Download the Real-ESRGAN pre-trained models:
+
+<CodeGroup>
+```bash Generator (RealESRGAN_x4plus.pth)
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth -P experiments/pretrained_models
+```
+
+```bash Discriminator (RealESRGAN_x4plus_netD.pth)
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.3/RealESRGAN_x4plus_netD.pth -P experiments/pretrained_models
+```
+</CodeGroup>
+
+<Warning>
+  You need both the generator and discriminator models for fine-tuning with GAN losses.
+</Warning>
+
+### Step 3: Configure Fine-tuning
+
+Modify `options/finetune_realesrgan_x4plus.yml`:
+
+```yml
+train:
+  name: MyCustomDataset
+  type: RealESRGANDataset
+  dataroot_gt: datasets/my_dataset  # modify to your root path
+  meta_info: datasets/my_dataset/meta_info.txt  # modify to your meta info file
+  io_backend:
+    type: disk
+```
+
+<Accordion title="Key configuration options for fine-tuning">
+  ```yml
+  # Network structures
+  network_g:
+    type: RRDBNet
+    num_in_ch: 3
+    num_out_ch: 3
+    num_feat: 64
+    num_block: 23
+    num_grow_ch: 32
+  
+  # Path to pre-trained models
+  path:
+    pretrain_network_g: experiments/pretrained_models/RealESRGAN_x4plus.pth
+    pretrain_network_d: experiments/pretrained_models/RealESRGAN_x4plus_netD.pth
+    strict_load_g: true
+    strict_load_d: true
+  
+  # Training settings
+  train:
+    optim_g:
+      type: Adam
+      lr: !!float 1e-4  # Lower learning rate for fine-tuning
+    optim_d:
+      type: Adam
+      lr: !!float 1e-4
+    
+    total_iter: 50000  # Fewer iterations for fine-tuning
+    warmup_iter: -1
+  ```
+  
+  Use a lower learning rate and fewer iterations compared to training from scratch.
+</Accordion>
+
+### Step 4: Start Fine-tuning
+
+<CodeGroup>
+```bash Multi-GPU
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
+python -m torch.distributed.launch --nproc_per_node=4 --master_port=4321 realesrgan/train.py -opt options/finetune_realesrgan_x4plus.yml --launcher pytorch --auto_resume
+```
+
+```bash Single GPU
+python realesrgan/train.py -opt options/finetune_realesrgan_x4plus.yml --auto_resume
+```
+</CodeGroup>
+
+## Method 2: Paired Data
+
+Use this method when you have paired low-quality and high-quality images.
+
+### Step 1: Prepare Paired Dataset
+
+Organize your data into two folders:
+
+```
+datasets/my_dataset/
+├── HR/          # High-resolution (ground-truth) images
+│   ├── img001.png
+│   ├── img002.png
+│   └── ...
+└── LR/          # Low-resolution (degraded) images
+    ├── img001.png
+    ├── img002.png
+    └── ...
+```
+
+<Warning>
+  Image pairs must have matching filenames. The script uses filenames to pair images.
+</Warning>
+
+Generate the meta info file for paired data:
+
+```bash
+python scripts/generate_meta_info_pairdata.py --input datasets/my_dataset/HR datasets/my_dataset/LR --meta_info datasets/my_dataset/meta_info_pair.txt
+```
+
+### Step 2: Download Pre-trained Models
+
+Same as Method 1 - download both generator and discriminator:
+
+<CodeGroup>
+```bash Generator
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth -P experiments/pretrained_models
+```
+
+```bash Discriminator
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.3/RealESRGAN_x4plus_netD.pth -P experiments/pretrained_models
+```
+</CodeGroup>
+
+### Step 3: Configure Fine-tuning
+
+Modify `options/finetune_realesrgan_x4plus_pairdata.yml`:
+
+```yml
+train:
+  name: MyPairedDataset
+  type: RealESRGANPairedDataset  # Note: PairedDataset type
+  dataroot_gt: datasets/my_dataset  # Root path containing HR folder
+  dataroot_lq: datasets/my_dataset  # Root path containing LR folder
+  meta_info: datasets/my_dataset/meta_info_pair.txt
+  io_backend:
+    type: disk
+```
+
+<Note>
+  The key difference is using `RealESRGANPairedDataset` instead of `RealESRGANDataset`. This dataset type reads pre-made LQ/HQ pairs instead of generating degradation on-the-fly.
+</Note>
+
+### Step 4: Start Fine-tuning
+
+<CodeGroup>
+```bash Multi-GPU
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
+python -m torch.distributed.launch --nproc_per_node=4 --master_port=4321 realesrgan/train.py -opt options/finetune_realesrgan_x4plus_pairdata.yml --launcher pytorch --auto_resume
+```
+
+```bash Single GPU
+python realesrgan/train.py -opt options/finetune_realesrgan_x4plus_pairdata.yml --auto_resume
+```
+</CodeGroup>
+
+## Fine-tuning Tips
+
+<AccordionGroup>
+  <Accordion title="How many iterations?">
+    Fine-tuning typically needs fewer iterations:
+    - **Small dataset (100-500 images)**: 10,000-30,000 iterations
+    - **Medium dataset (500-2000 images)**: 30,000-100,000 iterations
+    - **Large dataset (2000+ images)**: 100,000-200,000 iterations
+    
+    Monitor validation metrics and visual quality to determine when to stop.
+  </Accordion>
+  
+  <Accordion title="Learning rate selection">
+    Use lower learning rates for fine-tuning:
+    - **From scratch**: 2e-4
+    - **Fine-tuning**: 1e-4 or 5e-5
+    - **Small dataset**: 5e-5 or 1e-5
+    
+    Lower learning rates prevent catastrophic forgetting of pre-trained knowledge.
+  </Accordion>
+  
+  <Accordion title="Preventing overfitting">
+    With small datasets, prevent overfitting by:
+    - Using data augmentation (already in RealESRGAN)
+    - Reducing training iterations
+    - Monitoring validation loss
+    - Using a lower learning rate
+    - Keeping more of the pre-trained model frozen (advanced)
+  </Accordion>
+  
+  <Accordion title="Testing multiple checkpoints">
+    Different checkpoints may perform better on your data:
+    
+    ```bash
+    # Test multiple checkpoints
+    for checkpoint in 10000 20000 30000 40000 50000; do
+      python inference_realesrgan.py \
+        -n test_${checkpoint} \
+        -i test_images \
+        -o results_${checkpoint} \
+        --model_path experiments/finetune_realesrgan/models/net_g_${checkpoint}.pth
+    done
+    ```
+    
+    Compare visual quality to choose the best checkpoint.
+  </Accordion>
+  
+  <Accordion title="Domain-specific degradations">
+    Customize the degradation process for your domain:
+    
+    In the config file, adjust degradation parameters:
+    ```yml
+    degradation:
+      # Adjust blur kernel sizes
+      blur_kernel_size: 21
+      kernel_list: ['iso', 'aniso']
+      
+      # Adjust noise levels
+      noise_range: [1, 30]
+      
+      # Adjust JPEG compression
+      jpeg_range: [30, 95]
+    ```
+    
+    Match these to the degradation in your target domain.
+  </Accordion>
+</AccordionGroup>
+
+## Monitoring Fine-tuning
+
+Watch for these signs during fine-tuning:
+
+### Good Signs
+- Losses decrease initially then stabilize
+- Validation metrics improve
+- Visual quality improves on your test images
+- Model generalizes to unseen images
+
+### Warning Signs
+- Losses continue decreasing but validation worsens (overfitting)
+- GAN becomes unstable (mode collapse)
+- Results look worse than pre-trained model
+- Artifacts appear in outputs
+
+<Note>
+  If you see warning signs, try:
+  - Resuming from an earlier checkpoint
+  - Reducing learning rate
+  - Adding more training data
+  - Stopping training earlier
+</Note>
+
+## Using Fine-tuned Models
+
+After fine-tuning completes:
+
+```bash
+# Use your fine-tuned model
+python inference_realesrgan.py \
+  -n my_finetuned_model \
+  -i inputs \
+  -o results \
+  --model_path experiments/finetune_realesrgan/models/net_g_50000.pth
+```
+
+Or integrate into applications via the Python API:
+
+```python
+from basicsr.archs.rrdbnet_arch import RRDBNet
+from realesrgan import RealESRGANer
+
+model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32)
+upsampler = RealESRGANer(
+    scale=4,
+    model_path='experiments/finetune_realesrgan/models/net_g_50000.pth',
+    model=model,
+    tile=400,
+    tile_pad=10,
+    pre_pad=0,
+)
+
+output, _ = upsampler.enhance(img, outscale=4)
+```
+
+## Example: Fine-tuning for Anime
+
+Real-ESRGAN includes a variant fine-tuned for anime images. Here's how it was done:
+
+<Steps>
+  <Step title="Collect Anime Images">
+    Gather high-quality anime images (artwork, screenshots, etc.)
+  </Step>
+  
+  <Step title="Customize Degradation">
+    Adjust degradation to match anime characteristics:
+    - Sharper edges (less blur)
+    - Less noise (anime is typically clean)
+    - Different compression artifacts
+  </Step>
+  
+  <Step title="Fine-tune">
+    Train for ~100K iterations with adjusted degradation
+  </Step>
+  
+  <Step title="Result">
+    RealESRGAN-AnimeVideo model specialized for anime content
+  </Step>
+</Steps>
+
+You can follow this pattern for other domains (faces, medical images, satellite imagery, etc.).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Inference Guide" icon="play" href="/inference/basic-usage">
+    Use your fine-tuned model for super-resolution
+  </Card>
+  
+  <Card title="Python API" icon="code" href="/inference/python-api">
+    Integrate your model into applications
+  </Card>
+</CardGroup>

@@ -1,0 +1,294 @@
+---
+title: Train Real-ESRGAN
+description: Stage 2 training with L1, perceptual, and GAN losses
+---
+
+Real-ESRGAN is the second stage of training that builds on the Real-ESRNet model. It uses a combination of L1 loss, perceptual loss, and GAN loss to achieve high perceptual quality.
+
+## Prerequisites
+
+<Steps>
+  <Step title="Complete Real-ESRNet Training">
+    Finish [Real-ESRNet training](/training/train-realesrnet) and have the trained model checkpoint.
+  </Step>
+  
+  <Step title="Locate Trained Model">
+    Find the trained model at:
+    ```
+    experiments/train_RealESRNetx4plus_1000k_B12G4_fromESRGAN/models/net_g_1000000.pth
+    ```
+  </Step>
+</Steps>
+
+## Configure Training Options
+
+Modify the training configuration file `options/train_realesrgan_x4plus.yml`:
+
+### Pre-trained Model Path
+
+The Real-ESRNet model from stage 1 is used as the generator initialization. Verify the pre-trained model path:
+
+```yml
+path:
+  pretrain_network_g: experiments/train_RealESRNetx4plus_1000k_B12G4_fromESRGAN/models/net_g_1000000.pth
+```
+
+<Note>
+  If your Real-ESRNet model is saved elsewhere, update `pretrain_network_g` to point to the correct path.
+</Note>
+
+### Dataset Configuration
+
+Update the dataset paths, similar to Real-ESRNet training:
+
+```yml
+train:
+  name: DF2K+OST
+  type: RealESRGANDataset
+  dataroot_gt: datasets/DF2K  # modify to the root path of your folder
+  meta_info: realesrgan/meta_info/meta_info_DF2Kmultiscale+OST_sub.txt  # modify to your own generate meta info txt
+  io_backend:
+    type: disk
+```
+
+### Validation Configuration (Optional)
+
+If you want validation during training:
+
+```yml
+# Uncomment these for validation
+val:
+  name: validation
+  type: PairedImageDataset
+  dataroot_gt: path_to_gt
+  dataroot_lq: path_to_lq
+  io_backend:
+    type: disk
+
+# validation settings
+val:
+  val_freq: !!float 5e3
+  save_img: true
+  metrics:
+    psnr:
+      type: calculate_psnr
+      crop_border: 4
+      test_y_channel: false
+```
+
+## Understanding the Loss Functions
+
+Real-ESRGAN training combines three loss functions:
+
+<CardGroup cols={3}>
+  <Card title="L1 Loss" icon="chart-line">
+    Pixel-wise reconstruction loss for fidelity
+  </Card>
+  
+  <Card title="Perceptual Loss" icon="eye">
+    Feature-based loss for perceptual quality
+  </Card>
+  
+  <Card title="GAN Loss" icon="sparkles">
+    Adversarial loss for realistic details
+  </Card>
+</CardGroup>
+
+This combination balances:
+- **Fidelity**: Accurate reconstruction (L1 loss)
+- **Perceptual quality**: Natural appearance (Perceptual loss)
+- **Realistic details**: Sharp, believable textures (GAN loss)
+
+## Debug Mode
+
+Test your configuration before starting full training:
+
+<CodeGroup>
+```bash Multi-GPU Debug
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
+python -m torch.distributed.launch --nproc_per_node=4 --master_port=4321 realesrgan/train.py -opt options/train_realesrgan_x4plus.yml --launcher pytorch --debug
+```
+
+```bash Single GPU Debug
+python realesrgan/train.py -opt options/train_realesrgan_x4plus.yml --debug
+```
+</CodeGroup>
+
+<Warning>
+  Debug mode verifies that the pre-trained Real-ESRNet model loads correctly and that the GAN discriminator initializes properly.
+</Warning>
+
+## Start Training
+
+Once debug mode succeeds, start the full training:
+
+<CodeGroup>
+```bash Multi-GPU Training
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
+python -m torch.distributed.launch --nproc_per_node=4 --master_port=4321 realesrgan/train.py -opt options/train_realesrgan_x4plus.yml --launcher pytorch --auto_resume
+```
+
+```bash Single GPU Training
+python realesrgan/train.py -opt options/train_realesrgan_x4plus.yml --auto_resume
+```
+</CodeGroup>
+
+### Training Parameters
+
+<ParamField path="--nproc_per_node" type="int">
+  Number of GPUs for distributed training
+</ParamField>
+
+<ParamField path="--master_port" type="int">
+  Port for distributed training communication (choose a different port from stage 1 if running simultaneously)
+</ParamField>
+
+<ParamField path="--launcher" type="string">
+  Use `pytorch` for PyTorch distributed training
+</ParamField>
+
+<ParamField path="--auto_resume" type="boolean">
+  Automatically resume from the last checkpoint
+</ParamField>
+
+## Training Output
+
+Training artifacts are saved to:
+
+```
+experiments/
+└── train_RealESRGANx4plus_400k_B12G4_fromESRNet/
+    ├── models/
+    │   ├── net_g_100000.pth
+    │   ├── net_g_200000.pth
+    │   ├── net_g_400000.pth    # Final generator
+    │   ├── net_d_100000.pth
+    │   ├── net_d_200000.pth
+    │   └── net_d_400000.pth    # Final discriminator
+    ├── training_states/
+    │   └── 400000.state
+    └── visualization/
+```
+
+### Key Files
+
+- **models/net_g_*.pth**: Generator (Real-ESRGAN) checkpoints
+- **models/net_d_*.pth**: Discriminator checkpoints
+- **models/net_g_400000.pth**: Final Real-ESRGAN model (use this for inference)
+- **training_states/*.state**: Training state for resuming
+- **visualization/**: Sample super-resolution outputs
+
+<Note>
+  The final `net_g_400000.pth` is your trained Real-ESRGAN model ready for inference. You don't need the discriminator for inference.
+</Note>
+
+## Monitoring Training
+
+Monitor these key metrics during Real-ESRGAN training:
+
+```bash
+# View tensorboard logs
+tensorboard --logdir experiments/train_RealESRGANx4plus_400k_B12G4_fromESRNet/tensorboard
+```
+
+### Important Metrics
+
+- **Generator L1 loss**: Should be relatively stable
+- **Perceptual loss**: Measures feature similarity
+- **GAN loss (Generator)**: Adversarial loss from the generator perspective
+- **GAN loss (Discriminator)**: Should balance with generator loss
+- **D_real** and **D_fake**: Discriminator outputs (should stay balanced)
+
+<Accordion title="Interpreting GAN metrics">
+  Healthy GAN training shows:
+  - Generator and discriminator losses that oscillate but remain relatively stable
+  - D_real (discriminator output on real images) around 0.5-0.7
+  - D_fake (discriminator output on fake images) around 0.3-0.5
+  
+  Warning signs:
+  - One loss consistently dominating
+  - D_real or D_fake approaching 0 or 1
+  - Losses diverging or becoming unstable
+</Accordion>
+
+## Training Duration
+
+Typical training time for Real-ESRGAN:
+- **400K iterations** on 4x V100 GPUs: ~1.5-2 days
+- Single GPU training will take proportionally longer
+
+<Note>
+  Real-ESRGAN typically requires fewer iterations than Real-ESRNet (400K vs 1M) because it starts from the pre-trained Real-ESRNet model.
+</Note>
+
+## Using the Trained Model
+
+After training completes, use your model for inference:
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs -o results --model_path experiments/train_RealESRGANx4plus_400k_B12G4_fromESRNet/models/net_g_400000.pth
+```
+
+Or copy it to the standard weights directory:
+
+```bash
+mkdir -p weights
+cp experiments/train_RealESRGANx4plus_400k_B12G4_fromESRNet/models/net_g_400000.pth weights/my_realesrgan.pth
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Mode collapse (GAN failure)">
+    Signs of mode collapse:
+    - Generator produces similar outputs for different inputs
+    - Discriminator loss goes to 0
+    - Generated images lack diversity
+    
+    Solutions:
+    - Restart from an earlier checkpoint
+    - Adjust GAN loss weight in the config
+    - Verify Real-ESRNet pre-training was successful
+  </Accordion>
+  
+  <Accordion title="Out of memory errors">
+    GAN training uses more memory due to the discriminator. Reduce batch size:
+    
+    ```yml
+    datasets:
+      train:
+        batch_size_per_gpu: 8  # Reduce from 12
+    ```
+  </Accordion>
+  
+  <Accordion title="Discriminator too strong/weak">
+    Adjust the balance between generator and discriminator:
+    
+    ```yml
+    train:
+      optim_g:
+        lr: !!float 2e-4
+      optim_d:
+        lr: !!float 2e-4  # Adjust this relative to optim_g
+    ```
+  </Accordion>
+  
+  <Accordion title="Artifacts in output">
+    If the model produces artifacts:
+    - Check earlier checkpoints (100K, 200K) - sometimes earlier iterations are better
+    - Verify the Real-ESRNet pre-training was sufficient
+    - Consider adjusting perceptual loss weight
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Fine-tune on Custom Data" icon="sliders" href="/training/finetune">
+    Adapt your trained model to specific image domains
+  </Card>
+  
+  <Card title="Inference Guide" icon="play" href="/inference/basic-usage">
+    Learn how to use your trained model for super-resolution
+  </Card>
+</CardGroup>

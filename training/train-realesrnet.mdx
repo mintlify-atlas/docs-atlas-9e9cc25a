@@ -1,0 +1,258 @@
+---
+title: Train Real-ESRNet
+description: Stage 1 training with L1 loss from pre-trained ESRGAN
+---
+
+Real-ESRNet is the first stage of Real-ESRGAN training. It uses L1 loss to create a stable base model before adversarial training.
+
+## Prerequisites
+
+<Steps>
+  <Step title="Prepare Dataset">
+    Complete the [dataset preparation](/training/dataset-preparation) steps and have your meta info file ready.
+  </Step>
+  
+  <Step title="Download Pre-trained Model">
+    Download the ESRGAN pre-trained model as the starting point.
+  </Step>
+</Steps>
+
+## Download Pre-trained ESRGAN Model
+
+Real-ESRNet training starts from a pre-trained ESRGAN model:
+
+```bash
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.1/ESRGAN_SRx4_DF2KOST_official-ff704c30.pth -P experiments/pretrained_models
+```
+
+This downloads the ESRGAN model trained on DF2K and OST datasets.
+
+## Configure Training Options
+
+Modify the training configuration file `options/train_realesrnet_x4plus.yml`:
+
+### Dataset Configuration
+
+Update the dataset paths to match your prepared data:
+
+```yml
+train:
+  name: DF2K+OST
+  type: RealESRGANDataset
+  dataroot_gt: datasets/DF2K  # modify to the root path of your folder
+  meta_info: realesrgan/meta_info/meta_info_DF2Kmultiscale+OST_sub.txt  # modify to your own generate meta info txt
+  io_backend:
+    type: disk
+```
+
+<ParamField path="dataroot_gt" type="string" required>
+  Root directory containing your ground-truth images
+</ParamField>
+
+<ParamField path="meta_info" type="string" required>
+  Path to the meta info text file you generated in dataset preparation
+</ParamField>
+
+<ParamField path="type" type="string" required>
+  Dataset type - use `RealESRGANDataset` for on-the-fly degradation
+</ParamField>
+
+### Validation Configuration (Optional)
+
+If you want to run validation during training, uncomment and modify these sections:
+
+```yml
+# Uncomment these for validation
+val:
+  name: validation
+  type: PairedImageDataset
+  dataroot_gt: path_to_gt
+  dataroot_lq: path_to_lq
+  io_backend:
+    type: disk
+```
+
+And configure validation settings:
+
+```yml
+# Uncomment these for validation
+# validation settings
+val:
+  val_freq: !!float 5e3
+  save_img: true
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 4
+      test_y_channel: false
+```
+
+<Note>
+  Validation is optional but helps monitor training progress. Set `val_freq` to control how often validation runs (e.g., `5e3` means every 5000 iterations).
+</Note>
+
+## Debug Mode
+
+Before starting the full training, test your configuration in debug mode to catch any issues:
+
+<CodeGroup>
+```bash Multi-GPU Debug
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
+python -m torch.distributed.launch --nproc_per_node=4 --master_port=4321 realesrgan/train.py -opt options/train_realesrnet_x4plus.yml --launcher pytorch --debug
+```
+
+```bash Single GPU Debug
+python realesrgan/train.py -opt options/train_realesrnet_x4plus.yml --debug
+```
+</CodeGroup>
+
+<Accordion title="What debug mode does">
+  Debug mode:
+  - Runs a few training iterations to verify everything works
+  - Checks data loading and model initialization
+  - Validates file paths and configurations
+  - Exits early without full training
+  
+  Use this to catch configuration errors before committing to a long training run.
+</Accordion>
+
+## Start Training
+
+Once debug mode runs successfully, start the full training:
+
+<CodeGroup>
+```bash Multi-GPU Training
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
+python -m torch.distributed.launch --nproc_per_node=4 --master_port=4321 realesrgan/train.py -opt options/train_realesrnet_x4plus.yml --launcher pytorch --auto_resume
+```
+
+```bash Single GPU Training
+python realesrgan/train.py -opt options/train_realesrnet_x4plus.yml --auto_resume
+```
+</CodeGroup>
+
+### Training Parameters
+
+<ParamField path="--nproc_per_node" type="int">
+  Number of GPUs to use for distributed training (e.g., 4 for 4 GPUs)
+</ParamField>
+
+<ParamField path="--master_port" type="int">
+  Port for distributed training communication (e.g., 4321)
+</ParamField>
+
+<ParamField path="--launcher" type="string">
+  Distributed training backend - use `pytorch` for PyTorch distributed
+</ParamField>
+
+<ParamField path="--auto_resume" type="boolean">
+  Automatically resume training from the last checkpoint if interrupted
+</ParamField>
+
+<Warning>
+  The `--auto_resume` flag is essential for long training runs. It automatically resumes from the last checkpoint if training is interrupted.
+</Warning>
+
+## Training Output
+
+Training artifacts are saved to the experiments directory:
+
+```
+experiments/
+└── train_RealESRNetx4plus_1000k_B12G4_fromESRGAN/
+    ├── models/
+    │   ├── net_g_100000.pth
+    │   ├── net_g_200000.pth
+    │   └── net_g_1000000.pth    # Final model
+    ├── training_states/
+    │   └── 1000000.state
+    └── visualization/
+```
+
+### Key Files
+
+- **models/net_g_*.pth**: Generator model checkpoints saved at intervals
+- **models/net_g_1000000.pth**: The final Real-ESRNet model after 1M iterations
+- **training_states/*.state**: Training state for resuming (optimizer, scheduler, etc.)
+- **visualization/**: Sample outputs during training (if enabled)
+
+<Note>
+  The final model `net_g_1000000.pth` will be used as the initialization for Real-ESRGAN training in stage 2.
+</Note>
+
+## Monitoring Training
+
+Training progress is logged to the console and tensorboard (if configured):
+
+```bash
+# View tensorboard logs
+tensorboard --logdir experiments/train_RealESRNetx4plus_1000k_B12G4_fromESRGAN/tensorboard
+```
+
+Monitor these metrics:
+- **L1 loss**: Should decrease steadily
+- **Learning rate**: Check the schedule is working
+- **Validation metrics**: PSNR/SSIM if validation is enabled
+
+## Training Duration
+
+Typical training time for Real-ESRNet:
+- **1M iterations** on 4x V100 GPUs: ~3-4 days
+- Single GPU training will take proportionally longer
+
+<Accordion title="Adjusting training iterations">
+  The default configuration trains for 1,000,000 iterations. You can adjust this in the config file:
+  
+  ```yml
+  train:
+    total_iter: 1000000
+    warmup_iter: -1
+  ```
+  
+  For quick testing, reduce to 100,000 iterations, though results will be suboptimal.
+</Accordion>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Out of memory errors">
+    Reduce batch size in the configuration:
+    
+    ```yml
+    datasets:
+      train:
+        batch_size_per_gpu: 12  # Reduce this (e.g., to 6 or 4)
+    ```
+  </Accordion>
+  
+  <Accordion title="Dataset not found">
+    Verify your paths:
+    - Check `dataroot_gt` points to the correct directory
+    - Ensure `meta_info` file exists and contains valid paths
+    - Paths in meta_info should be relative to `dataroot_gt`
+  </Accordion>
+  
+  <Accordion title="CUDA device errors">
+    Adjust `CUDA_VISIBLE_DEVICES` to match your available GPUs:
+    
+    ```bash
+    # For 2 GPUs (0 and 1)
+    CUDA_VISIBLE_DEVICES=0,1 \
+    python -m torch.distributed.launch --nproc_per_node=2 ...
+    ```
+  </Accordion>
+  
+  <Accordion title="Training is very slow">
+    - Use cropped sub-images (Step 2 of dataset preparation)
+    - Increase `num_worker_per_gpu` for faster data loading
+    - Ensure data is on fast storage (SSD)
+    - Check GPU utilization with `nvidia-smi`
+  </Accordion>
+</AccordionGroup>
+
+## Next Step
+
+<Card title="Train Real-ESRGAN" icon="arrow-right" href="/training/train-realesrgan">
+  Continue to stage 2: Train Real-ESRGAN with perceptual and GAN losses
+</Card>

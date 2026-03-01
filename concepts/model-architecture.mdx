@@ -1,0 +1,284 @@
+---
+title: Model Architecture
+description: Deep dive into Real-ESRGAN's network architectures and their components
+---
+
+Real-ESRGAN uses two primary generator architectures optimized for different use cases, along with a specialized discriminator network for adversarial training.
+
+## Generator Architectures
+
+Real-ESRGAN offers two generator networks with different trade-offs between quality and efficiency.
+
+### RRDBNet Architecture
+
+The RRDBNet (Residual-in-Residual Dense Block Network) is the primary architecture for high-quality super-resolution tasks, inherited from ESRGAN.
+
+#### Architecture Parameters
+
+Based on the source code in `inference_realesrgan.py`, Real-ESRGAN uses the following RRDBNet configurations:
+
+**RealESRGAN_x4plus / RealESRNet_x4plus** (Standard Model)
+```python
+RRDBNet(
+    num_in_ch=3,      # Input channels (RGB)
+    num_out_ch=3,     # Output channels (RGB)
+    num_feat=64,      # Base feature channels
+    num_block=23,     # Number of RRDB blocks
+    num_grow_ch=32,   # Growth channels in dense blocks
+    scale=4           # Upsampling scale factor
+)
+```
+
+**RealESRGAN_x4plus_anime_6B** (Lightweight Anime Model)
+```python
+RRDBNet(
+    num_in_ch=3,
+    num_out_ch=3,
+    num_feat=64,
+    num_block=6,      # Reduced to 6 blocks for smaller size
+    num_grow_ch=32,
+    scale=4
+)
+```
+
+**RealESRGAN_x2plus** (2x Upsampling)
+```python
+RRDBNet(
+    num_in_ch=3,
+    num_out_ch=3,
+    num_feat=64,
+    num_block=23,
+    num_grow_ch=32,
+    scale=2           # 2x upsampling instead of 4x
+)
+```
+
+#### Network Structure
+
+<Info>
+  RRDBNet is built on a "Residual-in-Residual" design where dense blocks are nested within residual connections, enabling very deep networks with stable gradient flow.
+</Info>
+
+The network follows this structure:
+
+1. **Initial Convolution**: Extracts base features from the input image
+2. **RRDB Trunk**: Stack of Residual-in-Residual Dense Blocks
+3. **Trunk Convolution**: Processes accumulated features
+4. **Global Residual Connection**: Adds input features to output of trunk
+5. **Upsampling Layers**: Pixel shuffle layers for resolution increase
+6. **Final Convolution**: Produces output RGB image
+
+#### Residual-in-Residual Dense Block (RRDB)
+
+Each RRDB contains multiple dense blocks with residual scaling:
+
+- **Dense Block**: Each layer connects to all subsequent layers
+- **Local Residual**: Within each dense block
+- **Global Residual**: Across the entire RRDB
+- **Residual Scaling**: Uses β scaling factor (typically 0.2) for stable training
+
+#### Model Sizes and Complexity
+
+| Model | RRDB Blocks | Parameters | Use Case |
+|-------|-------------|------------|----------|
+| RealESRGAN_x4plus | 23 | ~16.7M | General images, highest quality |
+| RealESRGAN_x4plus_anime_6B | 6 | ~6M | Anime images, balanced quality/size |
+| RealESRNet_x4plus | 23 | ~16.7M | Pre-GAN training, slightly softer |
+
+<Note>
+  The anime model with only 6 RRDB blocks achieves excellent results for anime content while being significantly smaller, demonstrating that model capacity requirements vary by domain.
+</Note>
+
+### SRVGGNetCompact Architecture
+
+SRVGGNetCompact is a lightweight VGG-style architecture designed for fast inference with minimal memory footprint.
+
+#### Architecture Parameters
+
+From `realesrgan/archs/srvgg_arch.py` and `inference_realesrgan.py`:
+
+**realesr-animevideov3** (Extra Small Model)
+```python
+SRVGGNetCompact(
+    num_in_ch=3,      # Input channels
+    num_out_ch=3,     # Output channels
+    num_feat=64,      # Feature channels
+    num_conv=16,      # Number of conv layers
+    upscale=4,        # Upsampling factor
+    act_type='prelu'  # Activation function
+)
+```
+
+**realesr-general-x4v3** (Small General Model)
+```python
+SRVGGNetCompact(
+    num_in_ch=3,
+    num_out_ch=3,
+    num_feat=64,
+    num_conv=32,      # More conv layers for general images
+    upscale=4,
+    act_type='prelu'
+)
+```
+
+#### Network Structure
+
+The SRVGGNetCompact architecture is intentionally simple:
+
+```python
+class SRVGGNetCompact(nn.Module):
+    def __init__(self, num_in_ch=3, num_out_ch=3, num_feat=64, 
+                 num_conv=16, upscale=4, act_type='prelu'):
+        # Initial convolution
+        Conv2d(num_in_ch, num_feat, 3, 1, 1)
+        
+        # Body: num_conv repeated conv+activation blocks
+        for _ in range(num_conv):
+            Conv2d(num_feat, num_feat, 3, 1, 1)
+            Activation(num_feat)  # PReLU, ReLU, or LeakyReLU
+        
+        # Final conv to upsampling channels
+        Conv2d(num_feat, num_out_ch * upscale * upscale, 3, 1, 1)
+        
+        # Pixel shuffle upsampling
+        PixelShuffle(upscale)
+```
+
+<Accordion title="Key Design Principles">
+  **Compact Design**
+  - No dense connections or complex residual structures
+  - All convolutions operate on the low-resolution feature space
+  - Upsampling performed only at the final layer
+  
+  **Residual Learning**
+  - Adds nearest-neighbor upsampled input to output
+  - Network learns the residual/difference rather than the full output
+  - Simplifies learning and improves convergence
+  
+  **Efficiency Focus**
+  - Minimal memory footprint during inference
+  - Fast processing suitable for video applications
+  - Significantly fewer parameters than RRDBNet
+</Accordion>
+
+#### Activation Functions
+
+SRVGGNetCompact supports three activation types:
+
+- **PReLU** (default): Learnable negative slope, most common choice
+- **ReLU**: Simple and fast, zero for negative values
+- **LeakyReLU**: Fixed small negative slope (0.1)
+
+#### Model Comparison
+
+| Model | Conv Layers | Parameters | Speed | Use Case |
+|-------|-------------|------------|-------|----------|
+| realesr-animevideov3 | 16 | ~600K | Very Fast | Anime videos |
+| realesr-general-x4v3 | 32 | ~1.2M | Fast | General images |
+| RealESRGAN_x4plus (RRDBNet) | - | ~16.7M | Slower | Highest quality |
+
+<Note>
+  SRVGGNetCompact is approximately **28x smaller** and several times faster than RRDBNet while still producing high-quality results for appropriate content types.
+</Note>
+
+## Discriminator Architecture
+
+Real-ESRGAN uses a U-Net discriminator with spectral normalization for stable adversarial training.
+
+### UNetDiscriminatorSN
+
+From `realesrgan/archs/discriminator_arch.py`:
+
+```python
+UNetDiscriminatorSN(
+    num_in_ch=3,           # Input channels
+    num_feat=64,           # Base feature channels
+    skip_connection=True   # Enable U-Net skip connections
+)
+```
+
+### Architecture Details
+
+The discriminator follows a U-Net structure with downsampling and upsampling paths:
+
+#### Downsampling Path
+```python
+conv0: Conv2d(num_in_ch, num_feat, 3, 1, 1)           # 64 channels
+conv1: SpectralNorm(Conv2d(num_feat, num_feat*2, 4, 2, 1))  # 128 channels, stride 2
+conv2: SpectralNorm(Conv2d(num_feat*2, num_feat*4, 4, 2, 1))  # 256 channels, stride 2
+conv3: SpectralNorm(Conv2d(num_feat*4, num_feat*8, 4, 2, 1))  # 512 channels, stride 2
+```
+
+#### Upsampling Path
+```python
+conv4: SpectralNorm(Conv2d(num_feat*8, num_feat*4, 3, 1, 1))  # 256 channels
+conv5: SpectralNorm(Conv2d(num_feat*4, num_feat*2, 3, 1, 1))  # 128 channels
+conv6: SpectralNorm(Conv2d(num_feat*2, num_feat, 3, 1, 1))    # 64 channels
+```
+
+#### Output Head
+```python
+conv7: SpectralNorm(Conv2d(num_feat, num_feat, 3, 1, 1))  # Extra processing
+conv8: SpectralNorm(Conv2d(num_feat, num_feat, 3, 1, 1))  # Extra processing
+conv9: Conv2d(num_feat, 1, 3, 1, 1)                        # Final prediction map
+```
+
+### Key Features
+
+<Info>
+  **Spectral Normalization**: Applied to all convolutional layers (except first and last) to stabilize GAN training by constraining the Lipschitz constant of the discriminator.
+</Info>
+
+**U-Net Skip Connections**: When enabled (default), features from the downsampling path are added to corresponding upsampling layers:
+```python
+if skip_connection:
+    x4 = x4 + x2  # Add features from conv2
+    x5 = x5 + x1  # Add features from conv1
+    x6 = x6 + x0  # Add features from conv0
+```
+
+**Multi-scale Discrimination**: The U-Net structure enables the discriminator to:
+- Capture both local and global information
+- Provide feedback at multiple resolutions
+- Preserve fine details through skip connections
+
+**Activation Function**: Uses LeakyReLU with negative_slope=0.2 throughout
+
+## Architecture Selection Guide
+
+<Accordion title="When to Use Each Architecture">
+  **RRDBNet (23 blocks)**
+  - Professional photo enhancement
+  - Maximum quality is required
+  - Batch processing with GPU available
+  - File size and speed are not critical
+  
+  **RRDBNet (6 blocks)**
+  - Anime and illustration upscaling
+  - Balance between quality and efficiency
+  - Moderate computational resources
+  
+  **SRVGGNetCompact (32 conv)**
+  - General-purpose fast upscaling
+  - Real-time or near-real-time requirements
+  - CPU inference or limited GPU memory
+  
+  **SRVGGNetCompact (16 conv)**
+  - Video super-resolution
+  - Anime/cartoon video processing
+  - Maximum speed and minimal memory
+  - Mobile or edge deployment
+</Accordion>
+
+## Model Files
+
+Pre-trained model weights are available for all architectures:
+
+- **RealESRGAN_x4plus.pth**: 4x RRDBNet for general images
+- **RealESRNet_x4plus.pth**: 4x RRDBNet before GAN training
+- **RealESRGAN_x4plus_anime_6B.pth**: 4x RRDBNet (6 blocks) for anime
+- **RealESRGAN_x2plus.pth**: 2x RRDBNet for moderate upscaling
+- **realesr-animevideov3.pth**: 4x SRVGGNetCompact for anime videos
+- **realesr-general-x4v3.pth**: 4x SRVGGNetCompact for general use
+
+All models are trained with the same two-stage training strategy but optimized for their respective domains.

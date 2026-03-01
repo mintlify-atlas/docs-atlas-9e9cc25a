@@ -1,0 +1,321 @@
+---
+title: 'Anime Images'
+description: 'Upscale anime illustrations and artwork with the optimized RealESRGAN_x4plus_anime_6B model'
+---
+
+## Overview
+
+Real-ESRGAN provides a specialized model optimized for anime images, illustrations, and artwork. The `RealESRGAN_x4plus_anime_6B` model is significantly smaller than the general model while delivering excellent results for anime content.
+
+## RealESRGAN_x4plus_anime_6B Model
+
+### Key Features
+
+- **Optimized for Anime**: Trained specifically on anime and illustration data
+- **Smaller Size**: Only 6 RRDB blocks vs. 23 blocks in the general model (~17MB vs ~64MB)
+- **Fast Processing**: Faster inference due to smaller architecture
+- **High Quality**: Preserves anime-style details and aesthetics
+
+### Download and Install
+
+<Steps>
+  <Step title="Download Model">
+    ```bash
+    wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth -P weights
+    ```
+  </Step>
+  
+  <Step title="Run Inference">
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i inputs
+    ```
+  </Step>
+  
+  <Step title="Check Results">
+    Enhanced anime images are saved in the `results` folder with 4x upscaling.
+  </Step>
+</Steps>
+
+## Usage Examples
+
+### Basic Upscaling
+
+<CodeGroup>
+```bash Single Image
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime_image.jpg
+```
+
+```bash Batch Processing
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime_folder -o results
+```
+
+```bash Custom Output Scale
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.png --outscale 2
+```
+
+```bash PNG Output
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.jpg --ext png
+```
+</CodeGroup>
+
+### Advanced Options
+
+<CodeGroup>
+```bash With Tiling (Large Images)
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i large_anime.png --tile 400
+```
+
+```bash Custom Suffix
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.jpg --suffix upscaled
+# Output: anime_upscaled.jpg
+```
+
+```bash FP32 Precision
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.png --fp32
+```
+</CodeGroup>
+
+## Model Specifications
+
+| Property | Value |
+|----------|-------|
+| **Architecture** | RRDBNet with 6 blocks |
+| **Upscale Factor** | 4x |
+| **Model Size** | ~17MB |
+| **Input Channels** | 3 (RGB) |
+| **Output Channels** | 3 (RGB) |
+| **Feature Channels** | 64 |
+| **Growth Channels** | 32 |
+| **Training Data** | Anime images and illustrations |
+
+## Comparison with Other Models
+
+<Tabs>
+  <Tab title="vs RealESRGAN_x4plus">
+    | Feature | Anime 6B | x4plus General |
+    |---------|----------|----------------|
+    | Anime Quality | Excellent | Good |
+    | General Images | Good | Excellent |
+    | Model Size | 17MB | 64MB |
+    | Speed | Faster | Slower |
+    | Best For | Anime/Illustrations | Photos/Natural images |
+  </Tab>
+  
+  <Tab title="vs waifu2x">
+    Real-ESRGAN anime model provides comparable or better quality than waifu2x with these advantages:
+    
+    - More accurate detail reconstruction
+    - Better handling of compression artifacts
+    - Sharper edges and cleaner lines
+    - Native PyTorch implementation for GPU acceleration
+    
+    See detailed comparisons in the [source documentation](https://github.com/xinntao/Real-ESRGAN/blob/master/docs/anime_model.md).
+  </Tab>
+  
+  <Tab title="vs realesr-animevideov3">
+    | Feature | Anime 6B | AnimeVideo v3 |
+    |---------|----------|---------------|
+    | Image Quality | Excellent | Very Good |
+    | Video Quality | N/A | Excellent |
+    | Model Size | 17MB | ~8MB (XS) |
+    | Best For | Static images | Video frames |
+    
+    Use `RealESRGAN_x4plus_anime_6B` for static anime images and `realesr-animevideov3` for video processing.
+  </Tab>
+</Tabs>
+
+## Common Use Cases
+
+### Upscaling Anime Screenshots
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i screenshots -o upscaled
+```
+
+Perfect for enhancing low-resolution anime screenshots from streaming services.
+
+### Processing Manga Panels
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i manga_pages -o enhanced --ext png
+```
+
+Preserves fine line details in manga artwork.
+
+### Enhancing Anime Artwork
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i artwork.jpg --outscale 4 --ext png
+```
+
+Upscale digital artwork and illustrations while maintaining anime aesthetic.
+
+### Processing Game Assets
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i game_assets -o enhanced_assets --tile 400
+```
+
+Upscale anime-style game sprites and textures. Use tiling for large textures.
+
+## Tips for Best Results
+
+<Tip>
+  **Image Format**
+  
+  Use PNG format for anime images when possible to avoid JPEG compression artifacts:
+  ```bash
+  python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i input.jpg --ext png
+  ```
+</Tip>
+
+<Tip>
+  **Transparent Images**
+  
+  The anime model handles RGBA images with transparency:
+  ```bash
+  python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime_with_alpha.png
+  ```
+  
+  Output is automatically saved as PNG to preserve the alpha channel.
+</Tip>
+
+<Warning>
+  **Face Enhancement Not Recommended**
+  
+  The `--face_enhance` option is designed for realistic faces and may not work well with anime faces. It's recommended to not use face enhancement with anime models:
+  
+  ```bash
+  # Don't use --face_enhance with anime images
+  python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.jpg
+  ```
+</Warning>
+
+<Tip>
+  **Choosing Output Scale**
+  
+  For anime images:
+  - **2x**: Moderate enhancement, good for already decent quality
+  - **4x**: Standard upscaling for most anime content
+  - **Higher**: Use for very low resolution sources
+  
+  ```bash
+  # For moderate quality anime
+  python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.jpg --outscale 2
+  
+  # For low quality anime
+  python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.jpg --outscale 4
+  ```
+</Tip>
+
+## Performance Optimization
+
+### Memory Usage
+
+The anime model uses less memory than the general model:
+
+<CodeGroup>
+```bash Standard Processing
+# No tiling needed for most images
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.jpg
+```
+
+```bash Large Images
+# Use tiling for very large images
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i large_anime.png --tile 512
+```
+</CodeGroup>
+
+### Batch Processing
+
+Process multiple anime images efficiently:
+
+```bash
+# Process entire folder
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime_collection -o upscaled_collection
+
+# With custom settings
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime_collection \
+  -o upscaled_collection --ext png --suffix enhanced
+```
+
+### GPU Selection
+
+Use specific GPU for processing:
+
+```bash
+# Use GPU 0
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.jpg --gpu-id 0
+
+# Use GPU 1
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.jpg --gpu-id 1
+```
+
+## NCNN Executable Alternative
+
+For users who prefer the portable NCNN executable:
+
+<Steps>
+  <Step title="Download NCNN Executable">
+    Download the appropriate version for your platform:
+    - [Windows](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip)
+    - [Linux](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip)
+    - [MacOS](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-macos.zip)
+  </Step>
+  
+  <Step title="Run NCNN Version">
+    ```bash
+    ./realesrgan-ncnn-vulkan.exe -i anime.jpg -o output.png -n realesrgan-x4plus-anime
+    ```
+  </Step>
+</Steps>
+
+The NCNN version doesn't require CUDA or PyTorch installation.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Results look over-smoothed">
+    This is normal for the anime model as it's trained to reduce noise. If you want to preserve more texture:
+    
+    1. Use the general model instead:
+       ```bash
+       python inference_realesrgan.py -n RealESRGAN_x4plus -i anime.jpg
+       ```
+    
+    2. Or use a lower output scale:
+       ```bash
+       python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.jpg --outscale 2
+       ```
+  </Accordion>
+  
+  <Accordion title="Colors look different">
+    Ensure you're using PNG output for best color preservation:
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.jpg --ext png
+    ```
+  </Accordion>
+  
+  <Accordion title="CUDA out of memory">
+    Use tiling to reduce memory usage:
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i anime.png --tile 400
+    ```
+    
+    Try smaller tile sizes (256, 300) if still encountering issues.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Anime Videos" icon="video" href="/guides/anime-videos">
+    Learn to upscale anime videos with realesr-animevideov3
+  </Card>
+  <Card title="General Images" icon="image" href="/guides/general-images">
+    Explore models for real-world photos
+  </Card>
+  <Card title="NCNN Executable" icon="rocket" href="/guides/ncnn-executable">
+    Use the portable executable without Python
+  </Card>
+</CardGroup>

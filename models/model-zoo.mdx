@@ -1,0 +1,98 @@
+---
+title: 'Model Zoo'
+description: 'Complete collection of Real-ESRGAN models for different use cases'
+---
+
+Real-ESRGAN provides a comprehensive collection of pre-trained models optimized for different types of content. Choose the right model based on your input type and requirements.
+
+## Model Categories
+
+<CardGroup cols={3}>
+  <Card title="General Models" icon="image" href="/models/general-models">
+    Models optimized for general photographic images
+  </Card>
+  <Card title="Anime Models" icon="sparkles" href="/models/anime-models">
+    Specialized models for anime images and illustrations
+  </Card>
+  <Card title="Video Models" icon="film" href="/models/video-models">
+    Lightweight models designed for video upscaling
+  </Card>
+</CardGroup>
+
+## Quick Reference
+
+### General Images
+
+| Model | Scale | Use Case |
+| --- | --- | --- |
+| RealESRGAN_x4plus | 4x | Best quality for general images |
+| RealESRGAN_x2plus | 2x | General images with 2x upscaling |
+| realesr-general-x4v3 | 1x-4x | Lightweight, fast processing |
+| RealESRNet_x4plus | 4x | MSE loss (smoother results) |
+
+### Anime Content
+
+| Model | Scale | Use Case |
+| --- | --- | --- |
+| RealESRGAN_x4plus_anime_6B | 4x | Anime images and illustrations |
+| realesr-animevideov3 | 1x-4x | Anime videos (lightweight) |
+
+## Model Selection Guide
+
+<AccordionGroup>
+  <Accordion title="For General Photography">
+    Use **RealESRGAN_x4plus** for the best quality on natural images, photographs, and general content. This is the flagship model with 23 RRDB blocks.
+    
+    If you need faster processing or have limited GPU memory, try **realesr-general-x4v3**, which is a compact model that still delivers good results.
+  </Accordion>
+
+  <Accordion title="For Anime/Manga">
+    Use **RealESRGAN_x4plus_anime_6B** for anime images and illustrations. This model is optimized specifically for anime characteristics and uses only 6 RRDB blocks for efficiency.
+    
+    For anime videos, use **realesr-animevideov3**, which is designed for temporal consistency and fast processing.
+  </Accordion>
+
+  <Accordion title="For Video Processing">
+    Video processing requires models that balance quality with speed. Use:
+    - **realesr-animevideov3** for anime videos
+    - **realesr-general-x4v3** for general video content
+    
+    Both models support variable scaling (1x, 2x, 3x, 4x) and have compact architectures for efficient processing.
+  </Accordion>
+
+  <Accordion title="For Smooth Results">
+    If you prefer smoother, less sharp results (useful for certain artistic styles), use **RealESRNet_x4plus**. This model is trained with MSE loss, producing over-smooth effects compared to GAN-based models.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  **Discriminator Models**: Models ending with `_netD` are discriminator networks used for fine-tuning. You typically don't need these for inference.
+</Note>
+
+## Download Locations
+
+All models are hosted on GitHub Releases:
+
+```bash
+https://github.com/xinntao/Real-ESRGAN/releases
+```
+
+Models are automatically downloaded when using the inference scripts with the `-n` parameter:
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs
+```
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="General Models" icon="image" href="/models/general-models">
+    Detailed specifications and usage
+  </Card>
+  <Card title="Anime Models" icon="sparkles" href="/models/anime-models">
+    Anime-specific optimizations
+  </Card>
+  <Card title="Video Models" icon="film" href="/models/video-models">
+    Video processing workflows
+  </Card>
+</CardGroup>

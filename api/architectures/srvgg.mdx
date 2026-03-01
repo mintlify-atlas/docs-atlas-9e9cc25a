@@ -1,0 +1,152 @@
+---
+title: SRVGGNetCompact
+description: A compact VGG-style network structure for super-resolution
+---
+
+## Overview
+
+SRVGGNetCompact is a compact VGG-style network architecture designed for efficient super-resolution. It performs upsampling in the last layer and conducts no convolution on the HR feature space, making it computationally efficient.
+
+This architecture is used in the lightweight Real-ESRGAN models like `realesr-animevideov3` and `realesr-general-x4v3`.
+
+## Class Definition
+
+```python
+from realesrgan.archs.srvgg_arch import SRVGGNetCompact
+
+model = SRVGGNetCompact(
+    num_in_ch=3,
+    num_out_ch=3,
+    num_feat=64,
+    num_conv=16,
+    upscale=4,
+    act_type='prelu'
+)
+```
+
+## Parameters
+
+<ParamField path="num_in_ch" type="int" default="3">
+  Number of input channels. Typically 3 for RGB images.
+</ParamField>
+
+<ParamField path="num_out_ch" type="int" default="3">
+  Number of output channels. Typically 3 for RGB images.
+</ParamField>
+
+<ParamField path="num_feat" type="int" default="64">
+  Number of feature channels in intermediate layers. Higher values increase model capacity but also computational cost.
+</ParamField>
+
+<ParamField path="num_conv" type="int" default="16">
+  Number of convolutional layers in the body network. More layers allow the model to learn more complex patterns.
+</ParamField>
+
+<ParamField path="upscale" type="int" default="4">
+  Upsampling factor for super-resolution. Common values are 2, 4, or 8.
+</ParamField>
+
+<ParamField path="act_type" type="str" default="prelu">
+  Activation function type. Options:
+  - `'relu'`: ReLU activation
+  - `'prelu'`: Parametric ReLU (default, learns activation parameters)
+  - `'leakyrelu'`: Leaky ReLU with negative slope of 0.1
+</ParamField>
+
+## Architecture Details
+
+The network consists of:
+
+1. **Initial convolution**: 3×3 conv layer that expands input channels to `num_feat` channels
+2. **Body network**: `num_conv` layers of 3×3 convolutions with activation functions
+3. **Final convolution**: Maps features to output space (channels = `num_out_ch × upscale²`)
+4. **Pixel shuffle upsampler**: Rearranges feature maps to produce high-resolution output
+5. **Residual connection**: Adds nearest-neighbor upsampled input to the network output
+
+<Note>
+  The network learns residual information rather than the full high-resolution image, which helps with training stability and performance.
+</Note>
+
+## Model Configurations
+
+### realesr-animevideov3 (XS size)
+
+```python
+model = SRVGGNetCompact(
+    num_in_ch=3,
+    num_out_ch=3,
+    num_feat=64,
+    num_conv=16,  # Compact configuration
+    upscale=4,
+    act_type='prelu'
+)
+```
+
+Optimized for anime video upscaling with minimal parameters.
+
+### realesr-general-x4v3 (S size)
+
+```python
+model = SRVGGNetCompact(
+    num_in_ch=3,
+    num_out_ch=3,
+    num_feat=64,
+    num_conv=32,  # Deeper configuration
+    upscale=4,
+    act_type='prelu'
+)
+```
+
+General-purpose model with more layers for better quality on diverse images.
+
+## Usage Example
+
+```python
+import torch
+from realesrgan.archs.srvgg_arch import SRVGGNetCompact
+
+# Initialize model
+model = SRVGGNetCompact(
+    num_in_ch=3,
+    num_out_ch=3,
+    num_feat=64,
+    num_conv=16,
+    upscale=4,
+    act_type='prelu'
+)
+
+# Load pretrained weights
+model.load_state_dict(torch.load('realesr-animevideov3.pth')['params'])
+model.eval()
+
+# Inference
+with torch.no_grad():
+    lr_image = torch.randn(1, 3, 64, 64)  # Low-resolution input
+    sr_image = model(lr_image)  # Output: (1, 3, 256, 256)
+```
+
+<Info>
+  SRVGGNetCompact is significantly more efficient than RRDBNet, making it ideal for real-time applications and video processing.
+</Info>
+
+## Forward Method
+
+```python
+def forward(x):
+    """
+    Args:
+        x (Tensor): Input low-resolution image tensor of shape (B, C, H, W)
+    
+    Returns:
+        Tensor: Super-resolved image of shape (B, C, H*upscale, W*upscale)
+    """
+```
+
+The forward pass:
+1. Processes input through body network layers sequentially
+2. Applies pixel shuffle to upsample feature maps
+3. Adds nearest-neighbor upsampled input as residual
+
+## Source
+
+Defined in `realesrgan/archs/srvgg_arch.py`

@@ -1,0 +1,317 @@
+---
+title: 'General Images'
+description: 'Upscale real-world photos and general images with Real-ESRGAN'
+---
+
+## Overview
+
+Real-ESRGAN provides several models optimized for general real-world images, including photos, screenshots, and natural scenes. This guide covers model selection and best practices for general image super-resolution.
+
+## Recommended Models
+
+### RealESRGAN_x4plus (Primary)
+
+The default and most versatile model for general images.
+
+<CodeGroup>
+```bash Download Model
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth -P weights
+```
+
+```bash Basic Usage
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs
+```
+
+```bash With Face Enhancement
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs --face_enhance
+```
+</CodeGroup>
+
+**Specifications:**
+- **Upscale Factor**: 4x
+- **Architecture**: RRDBNet (23 blocks)
+- **Model Size**: ~64MB
+- **Best For**: Photos, natural images, general scenes
+
+### realesr-general-x4v3 (Denoise Control)
+
+A smaller, faster model with controllable denoising strength.
+
+<CodeGroup>
+```bash Download Models
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-x4v3.pth -P weights
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-wdn-x4v3.pth -P weights
+```
+
+```bash Weak Denoise (Keep Texture)
+python inference_realesrgan.py -n realesr-general-x4v3 -i input.jpg --denoise_strength 0.2
+```
+
+```bash Balanced
+python inference_realesrgan.py -n realesr-general-x4v3 -i input.jpg --denoise_strength 0.5
+```
+
+```bash Strong Denoise (Smooth)
+python inference_realesrgan.py -n realesr-general-x4v3 -i input.jpg --denoise_strength 0.8
+```
+</CodeGroup>
+
+**Specifications:**
+- **Upscale Factor**: 4x
+- **Architecture**: SRVGGNetCompact (32 conv layers)
+- **Model Size**: ~17MB (much smaller than x4plus)
+- **Best For**: Images where you want to control noise vs. detail trade-off
+- **Denoise Strength**: 0 (keep noise/texture) to 1 (strong denoise)
+
+<Note>
+  The `realesr-general-x4v3` model requires both the base model and the denoise model (wdn) for the `-dn` option to work.
+</Note>
+
+### RealESRGAN_x2plus (2x Upscaling)
+
+For moderate upscaling when 4x is too aggressive.
+
+<CodeGroup>
+```bash Download Model
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth -P weights
+```
+
+```bash Usage
+python inference_realesrgan.py -n RealESRGAN_x2plus -i input.jpg
+```
+</CodeGroup>
+
+**Specifications:**
+- **Upscale Factor**: 2x
+- **Architecture**: RRDBNet (23 blocks)
+- **Best For**: Images that need moderate enhancement
+
+### RealESRNet_x4plus (No GAN)
+
+ESRGAN model without GAN training - produces smoother results.
+
+<CodeGroup>
+```bash Download Model
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.1/RealESRNet_x4plus.pth -P weights
+```
+
+```bash Usage
+python inference_realesrgan.py -n RealESRNet_x4plus -i input.jpg
+```
+</CodeGroup>
+
+**Specifications:**
+- **Upscale Factor**: 4x
+- **Architecture**: RRDBNet (23 blocks)
+- **Best For**: When you want smoother results without GAN artifacts
+
+## Model Comparison
+
+<Tabs>
+  <Tab title="By Use Case">
+    | Use Case | Recommended Model | Notes |
+    |----------|------------------|-------|
+    | General photos | `RealESRGAN_x4plus` | Best overall quality |
+    | Photos with faces | `RealESRGAN_x4plus` + `--face_enhance` | Combines super-resolution with GFPGAN |
+    | Noisy images | `realesr-general-x4v3` with high `--denoise_strength` | Control noise reduction |
+    | Textured images | `realesr-general-x4v3` with low `--denoise_strength` | Preserve texture details |
+    | Quick processing | `realesr-general-x4v3` | Smaller, faster model |
+    | Moderate upscaling | `RealESRGAN_x2plus` | 2x instead of 4x |
+    | Smooth results | `RealESRNet_x4plus` | No GAN artifacts |
+  </Tab>
+  
+  <Tab title="By Size">
+    | Model | Size | Speed | Quality |
+    |-------|------|-------|----------|
+    | `realesr-general-x4v3` | ~17MB | Fast | Good |
+    | `RealESRGAN_x2plus` | ~64MB | Medium | Very Good |
+    | `RealESRGAN_x4plus` | ~64MB | Medium | Excellent |
+    | `RealESRNet_x4plus` | ~64MB | Medium | Excellent (smooth) |
+  </Tab>
+</Tabs>
+
+## Common Usage Patterns
+
+### Standard Workflow
+
+<Steps>
+  <Step title="Prepare Images">
+    Place your images in the `inputs` folder:
+    ```bash
+    mkdir -p inputs
+    cp /path/to/your/images/* inputs/
+    ```
+  </Step>
+  
+  <Step title="Run Inference">
+    Process with the appropriate model:
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs -o results
+    ```
+  </Step>
+  
+  <Step title="Check Results">
+    Enhanced images are saved in the `results` folder with the `_out` suffix.
+  </Step>
+</Steps>
+
+### Advanced Examples
+
+<CodeGroup>
+```bash Custom Scale
+# Upscale to exactly 3.5x
+python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --outscale 3.5
+```
+
+```bash With Tiling (Large Images)
+# Process large images without running out of memory
+python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --tile 400 --tile_pad 10
+```
+
+```bash PNG Output
+# Force PNG output format
+python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --ext png
+```
+
+```bash Custom Suffix
+# Use custom output suffix
+python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --suffix enhanced
+# Output: input_enhanced.jpg
+```
+
+```bash Full Precision
+# Use FP32 for potentially better quality
+python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --fp32
+```
+</CodeGroup>
+
+## Tips for Best Results
+
+<Warning>
+  **CUDA Out of Memory**
+  
+  For high-resolution images, use the `--tile` option:
+  ```bash
+  python inference_realesrgan.py -n RealESRGAN_x4plus -i large_image.jpg --tile 400
+  ```
+  
+  Smaller tile sizes use less memory but may introduce slight artifacts at tile boundaries.
+</Warning>
+
+<Tip>
+  **Denoise Strength Guidelines**
+  
+  When using `realesr-general-x4v3`:
+  - **0.0-0.3**: Preserve original texture and noise (good for film grain)
+  - **0.4-0.6**: Balanced (default is 0.5)
+  - **0.7-1.0**: Strong noise reduction (good for compressed images)
+</Tip>
+
+<Tip>
+  **Arbitrary Output Scale**
+  
+  Use `--outscale` for any target size:
+  ```bash
+  # Exactly 1.5x
+  python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --outscale 1.5
+  
+  # Exactly 10x
+  python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --outscale 10
+  ```
+  
+  The model upscales to its native scale (e.g., 4x), then resizes to your target using LANCZOS4.
+</Tip>
+
+## Batch Processing
+
+Process entire folders efficiently:
+
+```bash
+# Process all images in a folder
+python inference_realesrgan.py -n RealESRGAN_x4plus -i input_folder -o output_folder
+
+# With custom settings
+python inference_realesrgan.py -n RealESRGAN_x4plus -i input_folder -o output_folder \
+  --outscale 4 --tile 400 --ext png
+```
+
+The script automatically processes all supported images in the input folder.
+
+## Special Image Types
+
+### RGBA Images (With Transparency)
+
+Real-ESRGAN automatically handles alpha channels:
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i image_with_alpha.png
+```
+
+- Alpha channels are upsampled using the method specified by `--alpha_upsampler` (default: `realesrgan`)
+- Output is always saved as PNG to preserve transparency
+
+### Grayscale Images
+
+Grayscale images are supported natively:
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i grayscale.jpg
+```
+
+### 16-bit Images
+
+High bit-depth images are automatically handled:
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i 16bit_image.png
+```
+
+## Performance Optimization
+
+### Multi-GPU Usage
+
+Specify GPU device:
+
+```bash
+# Use GPU 0
+python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --gpu-id 0
+
+# Use GPU 1
+python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --gpu-id 1
+```
+
+### Memory Management
+
+<Tabs>
+  <Tab title="Low Memory">
+    ```bash
+    # Use smaller tiles and general model
+    python inference_realesrgan.py -n realesr-general-x4v3 -i input.jpg --tile 256
+    ```
+  </Tab>
+  
+  <Tab title="Balanced">
+    ```bash
+    # Default settings with moderate tiling
+    python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --tile 400
+    ```
+  </Tab>
+  
+  <Tab title="High Memory">
+    ```bash
+    # No tiling for best quality (requires sufficient VRAM)
+    python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg
+    ```
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Face Enhancement" icon="user" href="/guides/face-enhancement">
+    Enhance faces in your photos with GFPGAN integration
+  </Card>
+  <Card title="Anime Images" icon="sparkles" href="/guides/anime-images">
+    Learn about specialized models for anime content
+  </Card>
+</CardGroup>

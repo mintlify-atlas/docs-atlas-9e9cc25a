@@ -1,80 +1,351 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get started with Real-ESRGAN image upscaling
 ---
 
-## Get started in three steps
+## Basic Usage
 
-Get your documentation site running locally and make your first customization.
+Real-ESRGAN provides a simple command-line interface for upscaling images. This guide will walk you through your first image enhancement.
 
-### Step 1: Set up your local environment
+## Download a Pre-trained Model
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+Before running inference, you need to download a pre-trained model. Let's start with the general-purpose `RealESRGAN_x4plus` model:
 
-### Step 2: Deploy your changes
+<CodeGroup>
+```bash wget
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth -P weights
+```
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+```bash curl
+curl -L https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth -o weights/RealESRGAN_x4plus.pth
+```
+</CodeGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  The model will be automatically downloaded to the `weights` directory if it's not found when running inference.
 </Note>
+
+## Upscale Your First Image
+
+<Steps>
+  <Step title="Prepare Your Input">
+    Place your input image(s) in a folder. The default input folder is `inputs`:
+    
+    ```bash
+    mkdir -p inputs
+    cp /path/to/your/image.jpg inputs/
+    ```
+  </Step>
+
+  <Step title="Run Inference">
+    Use the `inference_realesrgan.py` script to upscale your image:
+    
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs
+    ```
+    
+    This command will:
+    - Use the `RealESRGAN_x4plus` model
+    - Process all images in the `inputs` folder
+    - Save results to the `results` folder (default output directory)
+  </Step>
+
+  <Step title="Check Results">
+    Your upscaled images will be in the `results` folder:
+    
+    ```bash
+    ls results/
+    ```
+  </Step>
+</Steps>
+
+## Command-Line Options
+
+The inference script provides many options for customization:
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i infile --outscale 3.5 --face_enhance
+```
+
+### Available Arguments
+
+<ParamField path="-i, --input" type="string" default="inputs">
+  Input image or folder path
+</ParamField>
+
+<ParamField path="-o, --output" type="string" default="results">
+  Output folder path
+</ParamField>
+
+<ParamField path="-n, --model_name" type="string" default="RealESRGAN_x4plus">
+  Model name. Options:
+  - `RealESRGAN_x4plus` - General images (default)
+  - `RealESRGAN_x4plus_anime_6B` - Anime images
+  - `RealESRNet_x4plus` - Alternative general model
+  - `RealESRGAN_x2plus` - 2x upscaling
+  - `realesr-animevideov3` - Anime videos
+  - `realesr-general-x4v3` - General scenes (small model)
+</ParamField>
+
+<ParamField path="-s, --outscale" type="float" default="4">
+  The final upsampling scale. Allows arbitrary output sizes (e.g., 3.5x)
+</ParamField>
+
+<ParamField path="--suffix" type="string" default="out">
+  Suffix for the restored image filename
+</ParamField>
+
+<ParamField path="-t, --tile" type="int" default="0">
+  Tile size for processing large images. Use this to reduce GPU memory usage. Set to 0 for no tiling. Recommended values: 200-400 for limited VRAM
+</ParamField>
+
+<ParamField path="--face_enhance" type="boolean">
+  Enable GFPGAN face enhancement
+</ParamField>
+
+<ParamField path="--fp32" type="boolean">
+  Use FP32 precision instead of FP16. Slower but may improve quality on some images
+</ParamField>
+
+<ParamField path="--ext" type="string" default="auto">
+  Output image extension. Options: `auto`, `jpg`, `png`
+</ParamField>
+
+<ParamField path="-g, --gpu-id" type="int">
+  GPU device ID to use (e.g., 0, 1, 2 for multi-GPU systems)
+</ParamField>
+
+## Common Examples
+
+### Upscale General Images
+
+<CodeGroup>
+```bash Basic 4x upscaling
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs
+```
+
+```bash Custom output scale
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs --outscale 2.5
+```
+
+```bash Single image
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs/photo.jpg -o outputs
+```
+</CodeGroup>
+
+### Upscale Anime Images
+
+For anime illustrations, use the specialized anime model:
+
+```bash
+# Download the anime model
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth -P weights
+
+# Run inference
+python inference_realesrgan.py -n RealESRGAN_x4plus_anime_6B -i inputs
+```
+
+<Note>
+  The anime model (`RealESRGAN_x4plus_anime_6B`) is optimized specifically for anime-style artwork and has a smaller model size compared to the general model.
+</Note>
+
+### Face Enhancement
+
+Enhance faces in your images using integrated GFPGAN:
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs --face_enhance
+```
+
+<Warning>
+  Face enhancement requires the `gfpgan` package to be installed. See the [installation guide](/installation) for details.
+</Warning>
+
+### Handle Large Images
+
+If you encounter CUDA out of memory errors, use the tile option:
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs --tile 400
+```
+
+<Accordion title="Understanding Tiling">
+  The `--tile` option splits large images into smaller tiles for processing, then stitches them back together. This reduces GPU memory usage but may introduce slight inconsistencies at tile boundaries.
+  
+  Recommended tile sizes:
+  - 4GB VRAM: `--tile 200`
+  - 6GB VRAM: `--tile 300`
+  - 8GB+ VRAM: `--tile 400` or no tiling
+</Accordion>
+
+## Python API Usage
+
+You can also use Real-ESRGAN programmatically in your Python scripts:
+
+```python
+import cv2
+from basicsr.archs.rrdbnet_arch import RRDBNet
+from realesrgan import RealESRGANer
+
+# Define the model
+model = RRDBNet(
+    num_in_ch=3,
+    num_out_ch=3,
+    num_feat=64,
+    num_block=23,
+    num_grow_ch=32,
+    scale=4
+)
+
+# Create upsampler
+upsampler = RealESRGANer(
+    scale=4,
+    model_path='weights/RealESRGAN_x4plus.pth',
+    model=model,
+    tile=0,
+    tile_pad=10,
+    pre_pad=0,
+    half=True,  # Use FP16 for faster inference
+    gpu_id=0
+)
+
+# Read image
+img = cv2.imread('inputs/image.jpg', cv2.IMREAD_UNCHANGED)
+
+# Upscale
+output, _ = upsampler.enhance(img, outscale=4)
+
+# Save result
+cv2.imwrite('outputs/image_upscaled.jpg', output)
+```
+
+### API with Face Enhancement
+
+```python
+import cv2
+from basicsr.archs.rrdbnet_arch import RRDBNet
+from realesrgan import RealESRGANer
+from gfpgan import GFPGANer
+
+# Define the model
+model = RRDBNet(
+    num_in_ch=3,
+    num_out_ch=3,
+    num_feat=64,
+    num_block=23,
+    num_grow_ch=32,
+    scale=4
+)
+
+# Create upsampler
+upsampler = RealESRGANer(
+    scale=4,
+    model_path='weights/RealESRGAN_x4plus.pth',
+    model=model,
+    tile=0,
+    tile_pad=10,
+    pre_pad=0,
+    half=True,
+    gpu_id=0
+)
+
+# Create face enhancer
+face_enhancer = GFPGANer(
+    model_path='https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.3.pth',
+    upscale=4,
+    arch='clean',
+    channel_multiplier=2,
+    bg_upsampler=upsampler
+)
+
+# Read image
+img = cv2.imread('inputs/portrait.jpg', cv2.IMREAD_UNCHANGED)
+
+# Enhance with face enhancement
+_, _, output = face_enhancer.enhance(
+    img,
+    has_aligned=False,
+    only_center_face=False,
+    paste_back=True
+)
+
+# Save result
+cv2.imwrite('outputs/portrait_enhanced.jpg', output)
+```
+
+## Supported Image Formats
+
+Real-ESRGAN supports various image formats and types:
+
+<CardGroup cols={2}>
+  <Card title="RGB Images" icon="image">
+    Standard color images (JPG, PNG, WebP)
+  </Card>
+  <Card title="RGBA Images" icon="layer-group">
+    Images with alpha channel transparency
+  </Card>
+  <Card title="Grayscale" icon="circle-half-stroke">
+    Single-channel grayscale images
+  </Card>
+  <Card title="16-bit Images" icon="file-image">
+    High bit-depth images for professional workflows
+  </Card>
+</CardGroup>
+
+## Performance Tips
+
+<AccordionGroup>
+  <Accordion title="Use FP16 (Half Precision)" icon="gauge-high">
+    By default, Real-ESRGAN uses FP16 for faster inference. Only use `--fp32` if you experience quality issues.
+  </Accordion>
+  
+  <Accordion title="Optimize Tile Size" icon="table-cells">
+    For large images, experiment with different tile sizes to find the best balance between speed and memory usage.
+  </Accordion>
+  
+  <Accordion title="Batch Processing" icon="layer-group">
+    Place multiple images in the input folder to process them in a single run.
+  </Accordion>
+  
+  <Accordion title="Use GPU" icon="microchip">
+    Always use a CUDA-enabled GPU for practical performance. CPU inference is extremely slow.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="CUDA out of memory" icon="triangle-exclamation">
+    **Solution:** Use the `--tile` option with a smaller tile size:
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs --tile 200
+    ```
+  </Accordion>
+  
+  <Accordion title="RuntimeError during inference" icon="circle-exclamation">
+    **Solution:** Check that your input image is valid and not corrupted. Also ensure you have enough disk space for the output.
+  </Accordion>
+  
+  <Accordion title="Model not found" icon="file-excel">
+    **Solution:** The model will be automatically downloaded. Ensure you have internet connectivity and write permissions in the `weights` folder.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Model Zoo"
+    icon="layer-group"
+    href="https://github.com/xinntao/Real-ESRGAN/blob/master/docs/model_zoo.md"
+  >
+    Explore all available models and their use cases
+  </Card>
+  <Card
+    title="Training Guide"
+    icon="graduation-cap"
+    href="https://github.com/xinntao/Real-ESRGAN/blob/master/docs/Training.md"
+  >
+    Learn how to train Real-ESRGAN on your own dataset
+  </Card>
+</CardGroup>

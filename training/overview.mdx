@@ -1,0 +1,97 @@
+---
+title: Training Overview
+description: Understand the two-stage training process for Real-ESRGAN
+---
+
+Real-ESRGAN uses a two-stage training process to achieve high-quality image super-resolution. This approach combines the stability of L1 loss with the perceptual quality improvements from GAN training.
+
+## Training Process
+
+The training is divided into two distinct stages that share the same data synthesis process and training pipeline, but differ in their loss functions:
+
+<Steps>
+  <Step title="Stage 1: Train Real-ESRNet">
+    Train Real-ESRNet using L1 loss from a pre-trained ESRGAN model. This stage provides a stable foundation and prevents mode collapse.
+    
+    - Uses L1 loss only
+    - Starts from pre-trained ESRGAN weights
+    - Results in a stable base model
+  </Step>
+  
+  <Step title="Stage 2: Train Real-ESRGAN">
+    Use the trained Real-ESRNet model as generator initialization and train Real-ESRGAN with a combination of losses.
+    
+    - Combines L1 loss, perceptual loss, and GAN loss
+    - Improves perceptual quality
+    - Produces the final Real-ESRGAN model
+  </Step>
+</Steps>
+
+## Why Two Stages?
+
+This two-stage approach offers several advantages:
+
+- **Stability**: Starting with L1 loss provides a stable baseline before introducing adversarial training
+- **Quality**: The combination of losses in stage 2 improves perceptual quality while maintaining fidelity
+- **Convergence**: Pre-training with L1 loss helps the GAN training converge more reliably
+
+## Training Requirements
+
+### Hardware
+
+- Multiple GPUs recommended (examples use 4 GPUs)
+- Single GPU training is supported but slower
+- Adequate disk space for datasets
+
+### Datasets
+
+Real-ESRGAN is trained on:
+
+- **DF2K**: Combination of DIV2K and Flickr2K datasets
+- **OST**: OpenImages subset for training
+
+Only high-resolution (HR) images are required. Low-quality images are generated on-the-fly during training using Real-ESRGAN's degradation process.
+
+<Note>
+  The degradation process simulates real-world image degradation, including blur, noise, compression artifacts, and downsampling.
+</Note>
+
+## Training Modes
+
+### Debug Mode
+
+Test your configuration before full training:
+
+```bash
+python realesrgan/train.py -opt options/train_realesrnet_x4plus.yml --debug
+```
+
+### Full Training
+
+Run the complete training process:
+
+```bash
+python realesrgan/train.py -opt options/train_realesrnet_x4plus.yml --auto_resume
+```
+
+The `--auto_resume` flag automatically resumes training from the last checkpoint if interrupted.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Dataset Preparation" icon="database" href="/training/dataset-preparation">
+    Learn how to prepare and process training datasets
+  </Card>
+  
+  <Card title="Train Real-ESRNet" icon="chart-line" href="/training/train-realesrnet">
+    Start with stage 1 training
+  </Card>
+  
+  <Card title="Train Real-ESRGAN" icon="sparkles" href="/training/train-realesrgan">
+    Complete stage 2 for the final model
+  </Card>
+  
+  <Card title="Fine-tuning" icon="sliders" href="/training/finetune">
+    Adapt the model to your custom dataset
+  </Card>
+</CardGroup>

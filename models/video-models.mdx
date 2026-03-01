@@ -1,0 +1,366 @@
+---
+title: 'Video Models'
+description: 'Lightweight models optimized for video upscaling with temporal consistency'
+---
+
+Real-ESRGAN provides specialized compact models for video upscaling. These models are designed to be lightweight and fast while maintaining good quality across video frames.
+
+## Available Video Models
+
+<CardGroup cols={2}>
+  <Card title="realesr-animevideov3" icon="film">
+    Optimized for anime videos with XS size
+  </Card>
+  <Card title="realesr-general-x4v3" icon="video">
+    Compact model for general video content
+  </Card>
+</CardGroup>
+
+## realesr-animevideov3
+
+<Note>
+  This model is specifically optimized for anime videos with extra-small (XS) size for efficient video processing.
+</Note>
+
+### Model Specifications
+
+| Property | Value |
+| --- | --- |
+| **Scale** | 1x, 2x, 3x, or 4x (variable) |
+| **Architecture** | SRVGGNetCompact |
+| **Convolution Layers** | 16 |
+| **Features** | 64 |
+| **Size** | XS (extra small) |
+| **Activation** | PReLU |
+| **Download** | [realesr-animevideov3.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-animevideov3.pth) |
+
+### Key Features
+
+<CardGroup cols={2}>
+  <Card title="Temporal Consistency" icon="clock">
+    Designed to maintain consistency across video frames
+  </Card>
+  <Card title="Lightweight" icon="feather">
+    XS size enables fast processing of video sequences
+  </Card>
+  <Card title="Variable Scale" icon="expand">
+    Supports 1x, 2x, 3x, and 4x upscaling
+  </Card>
+  <Card title="Low Memory" icon="memory">
+    Consumes minimal GPU memory for longer videos
+  </Card>
+</CardGroup>
+
+## realesr-general-x4v3
+
+### Model Specifications
+
+| Property | Value |
+| --- | --- |
+| **Scale** | 1x, 2x, 3x, or 4x (variable) |
+| **Architecture** | SRVGGNetCompact |
+| **Convolution Layers** | 32 |
+| **Features** | 64 |
+| **Size** | S (small) |
+| **Activation** | PReLU |
+| **Download** | [realesr-general-x4v3.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-x4v3.pth) |
+
+<Note>
+  This model can be used for both general images and videos. It's slightly larger than the anime video model but still very efficient.
+</Note>
+
+## Usage
+
+### PyTorch Inference
+
+```bash
+# Download the anime video model
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-animevideov3.pth -P weights
+
+# Single GPU, single process
+CUDA_VISIBLE_DEVICES=0 python inference_realesrgan_video.py \
+  -i inputs/video/onepiece_demo.mp4 \
+  -n realesr-animevideov3 \
+  -s 2 \
+  --suffix outx2
+
+# Single GPU, multiple processes (better GPU utilization)
+CUDA_VISIBLE_DEVICES=0 python inference_realesrgan_video.py \
+  -i inputs/video/onepiece_demo.mp4 \
+  -n realesr-animevideov3 \
+  -s 2 \
+  --suffix outx2 \
+  --num_process_per_gpu 2
+
+# Multi-GPU processing
+CUDA_VISIBLE_DEVICES=0,1,2,3 python inference_realesrgan_video.py \
+  -i inputs/video/onepiece_demo.mp4 \
+  -n realesr-animevideov3 \
+  -s 2 \
+  --suffix outx2 \
+  --num_process_per_gpu 2
+```
+
+### Command Line Options
+
+<ParamField path="--num_process_per_gpu" type="int">
+  Number of processes per GPU. Total processes = num_gpu × num_process_per_gpu. 
+  Helps with GPU utilization since video processing is often IO-bound.
+</ParamField>
+
+<ParamField path="--extract_frame_first" type="boolean">
+  Extract all frames before processing. Enable this if you encounter ffmpeg errors with multi-processing.
+</ParamField>
+
+<ParamField path="-s, --outscale" type="float">
+  Output scale: 1, 2, 3, or 4. Both video models support variable scaling.
+</ParamField>
+
+<ParamField path="-i, --input" type="string">
+  Input video file path.
+</ParamField>
+
+<ParamField path="-n, --model_name" type="string">
+  Model name: `realesr-animevideov3` or `realesr-general-x4v3`.
+</ParamField>
+
+## NCNN Executable (Manual Workflow)
+
+For systems without Python or CUDA, use the NCNN portable executable with a manual frame extraction workflow.
+
+<Steps>
+  <Step title="Extract Frames from Video">
+    Use ffmpeg to extract frames:
+    
+    ```bash
+    # Create output directory
+    mkdir tmp_frames
+    
+    # Extract frames with high quality
+    ffmpeg -i onepiece_demo.mp4 -qscale:v 1 -qmin 1 -qmax 1 -vsync 0 tmp_frames/frame%08d.png
+    ```
+  </Step>
+
+  <Step title="Download NCNN Executable">
+    Download for your platform:
+    - [Windows](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip)
+    - [Linux](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip)
+    - [MacOS](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-macos.zip)
+  </Step>
+
+  <Step title="Process Frames">
+    ```bash
+    # Create output directory
+    mkdir out_frames
+    
+    # Process all frames
+    ./realesrgan-ncnn-vulkan.exe -i tmp_frames -o out_frames -n realesr-animevideov3 -s 2 -f jpg
+    ```
+  </Step>
+
+  <Step title="Get Original FPS">
+    Check the original video's FPS:
+    
+    ```bash
+    ffmpeg -i onepiece_demo.mp4
+    ```
+    
+    Look for the fps value in the output (e.g., "23.98 fps").
+  </Step>
+
+  <Step title="Merge Frames Back to Video">
+    Merge enhanced frames into video:
+    
+    ```bash
+    # Video only
+    ffmpeg -r 23.98 -i out_frames/frame%08d.jpg \
+      -c:v libx264 -r 23.98 -pix_fmt yuv420p output.mp4
+    
+    # Video with audio from original
+    ffmpeg -r 23.98 -i out_frames/frame%08d.jpg -i onepiece_demo.mp4 \
+      -map 0:v:0 -map 1:a:0 \
+      -c:a copy -c:v libx264 \
+      -r 23.98 -pix_fmt yuv420p \
+      output_w_audio.mp4
+    ```
+  </Step>
+</Steps>
+
+### FFmpeg Options Explained
+
+<AccordionGroup>
+  <Accordion title="Frame Extraction Options">
+    ```bash
+    -qscale:v 1    # Quality scale (1 = highest quality)
+    -qmin 1        # Minimum quality
+    -qmax 1        # Maximum quality
+    -vsync 0       # Disable frame sync (extract all frames)
+    ```
+  </Accordion>
+
+  <Accordion title="Video Encoding Options">
+    ```bash
+    -r 23.98       # Frame rate (match original)
+    -c:v libx264   # Video codec (H.264)
+    -pix_fmt yuv420p  # Pixel format (widely compatible)
+    ```
+  </Accordion>
+
+  <Accordion title="Audio Handling">
+    ```bash
+    -map 0:v:0     # Map first video stream
+    -map 1:a:0     # Map first audio stream from second input
+    -c:a copy      # Copy audio without re-encoding
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Model Comparison
+
+### Anime Video vs General Video
+
+| Feature | realesr-animevideov3 | realesr-general-x4v3 |
+| --- | --- | --- |
+| **Size** | XS | S |
+| **Conv Layers** | 16 | 32 |
+| **Speed** | Fastest | Fast |
+| **Best For** | Anime videos | General videos |
+| **Memory** | Minimal | Low |
+| **Quality** | Good for anime | Good for general content |
+
+### Video Models vs Image Models
+
+| Aspect | Video Models | Image Models |
+| --- | --- | --- |
+| **Architecture** | SRVGGNetCompact | RRDBNet |
+| **Size** | XS/S | Large |
+| **Speed** | Very fast | Slower |
+| **Memory** | Low | Higher |
+| **Quality** | Good | Best |
+| **Use Case** | Video sequences | Single images |
+
+<Note>
+  Video models trade some quality for speed and efficiency, making them practical for processing thousands of video frames.
+</Note>
+
+## Performance Optimization
+
+### Multi-Processing for Better GPU Utilization
+
+<Accordion title="Why Multi-Processing?">
+  Video processing is often IO-bound (reading/writing frames), leaving GPUs underutilized. Multi-processing helps maximize GPU usage:
+
+  ```bash
+  # Single process (GPU may be idle during IO)
+  python inference_realesrgan_video.py -i video.mp4 -n realesr-animevideov3 -s 2
+
+  # 2 processes per GPU (better utilization)
+  python inference_realesrgan_video.py -i video.mp4 -n realesr-animevideov3 -s 2 --num_process_per_gpu 2
+  ```
+
+  Monitor GPU memory and adjust `num_process_per_gpu` accordingly.
+</Accordion>
+
+### Handling FFmpeg Errors
+
+<Accordion title="Extract Frames First">
+  If you encounter ffmpeg errors with multi-processing:
+
+  ```bash
+  python inference_realesrgan_video.py \
+    -i video.mp4 \
+    -n realesr-animevideov3 \
+    -s 2 \
+    --extract_frame_first
+  ```
+
+  This extracts all frames before processing, avoiding concurrent ffmpeg access issues.
+</Accordion>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Choose Right Scale" icon="expand">
+    Start with 2x for faster processing, use 4x only if needed:
+    ```bash
+    -s 2  # 2x upscaling (recommended)
+    -s 4  # 4x upscaling (slower)
+    ```
+  </Card>
+  
+  <Card title="Optimize GPU Usage" icon="gauge-high">
+    Use multi-processing for better GPU utilization:
+    ```bash
+    --num_process_per_gpu 2
+    ```
+  </Card>
+  
+  <Card title="Preserve Audio" icon="volume-high">
+    Always include audio when merging frames back:
+    ```bash
+    -map 0:v:0 -map 1:a:0 -c:a copy
+    ```
+  </Card>
+  
+  <Card title="Match FPS" icon="clock">
+    Use original video's FPS for smooth playback:
+    ```bash
+    -r 23.98  # Match original
+    ```
+  </Card>
+</CardGroup>
+
+## Example Workflows
+
+### Quick 2x Upscaling (Anime)
+
+```bash
+# Download model
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-animevideov3.pth -P weights
+
+# Process video
+CUDA_VISIBLE_DEVICES=0 python inference_realesrgan_video.py \
+  -i input.mp4 \
+  -n realesr-animevideov3 \
+  -s 2 \
+  --suffix _2x \
+  --num_process_per_gpu 2
+```
+
+### High Quality 4x Upscaling (General)
+
+```bash
+# Download model
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-x4v3.pth -P weights
+
+# Process video
+CUDA_VISIBLE_DEVICES=0 python inference_realesrgan_video.py \
+  -i input.mp4 \
+  -n realesr-general-x4v3 \
+  -s 4 \
+  --suffix _4x
+```
+
+### Batch Processing Multiple Videos
+
+```bash
+# Process all MP4 files in a directory
+for video in input_videos/*.mp4; do
+  python inference_realesrgan_video.py \
+    -i "$video" \
+    -n realesr-animevideov3 \
+    -s 2 \
+    --suffix _enhanced
+done
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Anime Models" icon="sparkles" href="/models/anime-models">
+    Learn about anime image upscaling
+  </Card>
+  <Card title="General Models" icon="image" href="/models/general-models">
+    Explore general image models
+  </Card>
+</CardGroup>

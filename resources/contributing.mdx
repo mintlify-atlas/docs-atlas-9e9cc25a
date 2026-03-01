@@ -1,0 +1,174 @@
+---
+title: Contributing to Real-ESRGAN
+description: Guidelines for contributing to the Real-ESRGAN project
+---
+
+Real-ESRGAN welcomes contributions from the community. Whether you're fixing a bug, adding a feature, or improving documentation, your contributions are appreciated.
+
+## Ways to Contribute
+
+We welcome all kinds of contributions to Real-ESRGAN:
+
+- **New features**: Implement new capabilities or enhancement options
+- **New models**: Share your fine-tuned models for specific use cases
+- **Bug fixes**: Help identify and fix issues
+- **Typo fixes**: Correct documentation and code comments
+- **Suggestions**: Propose ideas for improvements
+- **Maintenance**: Help maintain and optimize the codebase
+- **Documentation**: Improve or expand documentation
+
+<Note>
+  Real-ESRGAN is an open-source project aimed at developing practical algorithms for general image restoration. Individual contributions make a significant impact.
+</Note>
+
+## Contribution Workflow
+
+Follow these steps to contribute to Real-ESRGAN:
+
+### 1. Fork and Clone
+
+Fork the Real-ESRGAN repository and clone it to your local machine:
+
+```bash
+git clone https://github.com/YOUR_USERNAME/Real-ESRGAN.git
+cd Real-ESRGAN
+```
+
+### 2. Create a Branch
+
+Create a new branch for your changes. Do not use the master branch for pull requests:
+
+```bash
+git checkout -b feature/your-feature-name
+```
+
+Or for bug fixes:
+
+```bash
+git checkout -b fix/bug-description
+```
+
+### 3. Make Your Changes
+
+Implement your changes following the project's code style and conventions.
+
+#### Code Style and Linting
+
+Real-ESRGAN follows specific code style guidelines:
+
+- Style configuration is specified in `setup.cfg`
+- VSCode settings are configured in `.vscode/settings.json`
+- Check your code style before committing
+
+#### Using Pre-commit Hooks
+
+<Warning>
+  **Strongly recommended**: Use pre-commit hooks to automatically check code style and linting before commits.
+</Warning>
+
+Install pre-commit hooks in the project root:
+
+```bash
+pre-commit install
+```
+
+The pre-commit configuration is defined in `.pre-commit-config.yaml`. The hooks will:
+
+- Check code formatting
+- Run linting checks
+- Prevent commits that don't meet style guidelines
+
+### 4. Commit Your Changes
+
+Commit your changes with clear, descriptive commit messages:
+
+```bash
+git add .
+git commit -m "Add feature: brief description of your changes"
+```
+
+### 5. Create a Pull Request
+
+Push your branch to GitHub and create a pull request:
+
+```bash
+git push origin feature/your-feature-name
+```
+
+Then open a pull request from your branch to the main Real-ESRGAN repository.
+
+## Before Making Large Changes
+
+<Note>
+  For significant changes or new features, it's recommended to [open a discussion](https://github.com/xinntao/Real-ESRGAN/discussions) first.
+</Note>
+
+Discussing your plans before implementation:
+
+- Helps ensure your approach aligns with project goals
+- Avoids duplicate efforts
+- Gets feedback from maintainers and community members
+- Increases the likelihood of your PR being accepted
+
+The maintainers welcome discussions and will try their best to participate.
+
+## Development Priorities
+
+### Model Fine-tuning
+
+The most straightforward way to improve Real-ESRGAN's performance is fine-tuning models on specific datasets. High-priority areas include:
+
+- **Optimize for human faces**: Improve face restoration quality
+- **Optimize for text**: Better text clarity in upscaled images
+- **Support controllable restoration strength**: Allow users to adjust enhancement intensity
+
+### Open Issues
+
+There are [several open issues](https://github.com/xinntao/Real-ESRGAN/issues) that need community help. If you can contribute to any of these, please comment on the issue or reach out to the maintainers.
+
+## Code of Conduct
+
+Real-ESRGAN follows the [Contributor Covenant Code of Conduct](https://www.contributor-covenant.org/version/2/0/code_of_conduct/). By participating, you agree to uphold this code.
+
+### Our Standards
+
+Examples of behavior that contributes to a positive environment:
+
+- Demonstrating empathy and kindness toward other people
+- Being respectful of differing opinions, viewpoints, and experiences
+- Giving and gracefully accepting constructive feedback
+- Accepting responsibility and apologizing to those affected by our mistakes
+- Focusing on what is best for the overall community
+
+### Unacceptable Behavior
+
+Examples of unacceptable behavior include:
+
+- The use of sexualized language or imagery
+- Trolling, insulting or derogatory comments, and personal or political attacks
+- Public or private harassment
+- Publishing others' private information without explicit permission
+- Other conduct which could reasonably be considered inappropriate in a professional setting
+
+### Enforcement
+
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to:
+
+- xintao.wang@outlook.com
+- xintaowang@tencent.com
+
+All complaints will be reviewed and investigated promptly and fairly. Community leaders are obligated to respect the privacy and security of the reporter.
+
+## Recognition
+
+All contributors are acknowledged and listed in the [project README](https://github.com/xinntao/Real-ESRGAN#hugs-acknowledgement). Your contributions help make Real-ESRGAN better for everyone.
+
+## Questions?
+
+If you have questions about contributing:
+
+- Check the [Discussions](https://github.com/xinntao/Real-ESRGAN/discussions)
+- Review existing [Issues](https://github.com/xinntao/Real-ESRGAN/issues)
+- Reach out to the maintainers
+
+Thank you for contributing to Real-ESRGAN!

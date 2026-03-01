@@ -1,0 +1,225 @@
+---
+title: Dataset Preparation
+description: Prepare DF2K and OST datasets for training Real-ESRGAN
+---
+
+Real-ESRGAN uses the DF2K (DIV2K + Flickr2K) and OST datasets for training. This guide walks through downloading and preparing these datasets.
+
+## Download Datasets
+
+Only high-resolution (HR) images are required. Download the following datasets:
+
+<CardGroup cols={3}>
+  <Card title="DIV2K" icon="image">
+    High-quality diverse images
+    
+    [Download DIV2K_train_HR.zip](http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip)
+  </Card>
+  
+  <Card title="Flickr2K" icon="images">
+    Flickr image collection
+    
+    [Download Flickr2K.tar](https://cv.snu.ac.kr/research/EDSR/Flickr2K.tar)
+  </Card>
+  
+  <Card title="OST" icon="folder">
+    OpenImages subset
+    
+    [Download OST_dataset.zip](https://openmmlab.oss-cn-hangzhou.aliyuncs.com/datasets/OST_dataset.zip)
+  </Card>
+</CardGroup>
+
+<Note>
+  Extract all datasets to your `datasets/` directory. Combine DIV2K and Flickr2K into a `DF2K` folder.
+</Note>
+
+## Preparation Steps
+
+The dataset preparation involves three steps. Steps 1 and 2 are optional but recommended for optimal training performance.
+
+### Step 1: Generate Multi-scale Images (Optional)
+
+For the DF2K dataset, use a multi-scale strategy to create ground-truth images at different scales. This improves the model's ability to handle various image sizes.
+
+<Note>
+  This step can be omitted for a quick trial, but is recommended for full training.
+</Note>
+
+The script generates images at multiple scales (0.75x, 0.5x, 0.33x) and a version where the shortest edge is 400 pixels:
+
+```bash
+python scripts/generate_multiscale_DF2K.py --input datasets/DF2K/DF2K_HR --output datasets/DF2K/DF2K_multiscale
+```
+
+<Accordion title="How multi-scale generation works">
+  The `generate_multiscale_DF2K.py` script:
+  
+  - Downsamples HR images to 75%, 50%, and 33% of original size
+  - Creates a version with shortest edge = 400 pixels
+  - Uses LANCZOS resampling for high quality
+  - Saves images with suffixes like `T0`, `T1`, `T2`, `T3`
+  
+  This provides training data at multiple resolutions, helping the model generalize better.
+</Accordion>
+
+### Step 2: Crop to Sub-images (Optional)
+
+Crop images into sub-images for faster IO and processing during training. This is especially helpful when training on slower storage.
+
+<Note>
+  Skip this step if you have fast IO or limited disk space.
+</Note>
+
+```bash
+python scripts/extract_subimages.py --input datasets/DF2K/DF2K_multiscale --output datasets/DF2K/DF2K_multiscale_sub --crop_size 400 --step 200
+```
+
+#### Parameters
+
+<ParamField path="input" type="string" required>
+  Input folder containing images to crop
+</ParamField>
+
+<ParamField path="output" type="string" required>
+  Output folder for cropped sub-images
+</ParamField>
+
+<ParamField path="crop_size" type="int" default="480">
+  Size of each cropped sub-image (e.g., 400x400 pixels)
+</ParamField>
+
+<ParamField path="step" type="int" default="240">
+  Step size for overlapped sliding window. Smaller values create more sub-images with more overlap.
+</ParamField>
+
+<ParamField path="thresh_size" type="int" default="0">
+  Minimum size threshold. Patches smaller than this are dropped.
+</ParamField>
+
+<ParamField path="n_thread" type="int" default="20">
+  Number of parallel threads for processing
+</ParamField>
+
+<Accordion title="Understanding crop_size and step">
+  - **crop_size**: The dimension of each sub-image patch (e.g., 400 means 400x400)
+  - **step**: How much the sliding window moves. A step of 200 with crop_size 400 means 50% overlap
+  - More overlap = more training data but requires more disk space
+  
+  Example: For a 1200x1200 image with crop_size=400 and step=200:
+  - Creates 5x5 = 25 overlapping sub-images
+  - Each sub-image is 400x400 pixels
+</Accordion>
+
+### Step 3: Generate Meta Info File (Required)
+
+Create a text file containing all image paths. This file tells the training script which images to use.
+
+```bash
+python scripts/generate_meta_info.py --input datasets/DF2K/DF2K_HR datasets/DF2K/DF2K_multiscale --root datasets/DF2K datasets/DF2K --meta_info datasets/DF2K/meta_info/meta_info_DF2Kmultiscale.txt
+```
+
+#### Parameters
+
+<ParamField path="input" type="list" required>
+  List of input folders containing images. Can specify multiple folders separated by spaces.
+</ParamField>
+
+<ParamField path="root" type="list" required>
+  Corresponding root paths for each input folder. Must have same length as `--input`.
+</ParamField>
+
+<ParamField path="meta_info" type="string" required>
+  Output path for the generated meta info text file
+</ParamField>
+
+<ParamField path="check" type="boolean" default="false">
+  Read each image to verify it can be loaded without errors
+</ParamField>
+
+#### Meta Info Format
+
+The generated file contains relative paths, one per line:
+
+```txt
+DF2K_HR_sub/000001_s001.png
+DF2K_HR_sub/000001_s002.png
+DF2K_HR_sub/000001_s003.png
+DF2K_multiscale/000001T0.png
+DF2K_multiscale/000001T1.png
+...
+```
+
+<Warning>
+  Each user's meta info file will be different based on how images were cropped and processed. You must generate your own file - do not use example files from the repository.
+</Warning>
+
+## Combining Multiple Datasets
+
+You can merge multiple folders into a single meta info file:
+
+```bash
+python scripts/generate_meta_info.py \
+  --input datasets/DF2K/DF2K_multiscale_sub datasets/OST \
+  --root datasets/DF2K datasets/OST \
+  --meta_info datasets/meta_info/meta_info_DF2Kmultiscale+OST_sub.txt
+```
+
+This creates a combined dataset from both DF2K and OST images.
+
+## Validation Dataset (Optional)
+
+If you want to validate during training, prepare a separate validation dataset with paired low-quality and high-quality images.
+
+<Accordion title="Setting up validation">
+  1. Prepare validation image pairs:
+     - Ground-truth (GT) folder: High-resolution images
+     - Low-quality (LQ) folder: Corresponding low-resolution images
+  
+  2. Uncomment validation sections in your training config:
+  
+  ```yml
+  val:
+    name: validation
+    type: PairedImageDataset
+    dataroot_gt: path_to_gt
+    dataroot_lq: path_to_lq
+    io_backend:
+      type: disk
+  ```
+  
+  3. Configure validation frequency and metrics:
+  
+  ```yml
+  val:
+    val_freq: !!float 5e3
+    save_img: true
+    metrics:
+      psnr:
+        type: calculate_psnr
+        crop_border: 4
+        test_y_channel: false
+  ```
+</Accordion>
+
+## Directory Structure
+
+After preparation, your directory structure should look like:
+
+```
+datasets/
+├── DF2K/
+│   ├── DF2K_HR/                    # Original HR images
+│   ├── DF2K_multiscale/            # Multi-scale images
+│   ├── DF2K_multiscale_sub/        # Cropped sub-images
+│   └── meta_info/
+│       └── meta_info_DF2Kmultiscale.txt
+├── OST/                            # OST dataset
+└── meta_info/
+    └── meta_info_DF2Kmultiscale+OST_sub.txt
+```
+
+## Next Steps
+
+<Card title="Train Real-ESRNet" icon="play" href="/training/train-realesrnet">
+  Begin stage 1 training with your prepared dataset
+</Card>

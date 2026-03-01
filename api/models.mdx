@@ -1,0 +1,252 @@
+---
+title: Training Models
+description: RealESRGANModel and RealESRNetModel classes for training Real-ESRGAN networks
+---
+
+## Overview
+
+Real-ESRGAN provides two training model classes:
+
+- **RealESRGANModel**: Full GAN training with discriminator
+- **RealESRNetModel**: Training without GAN losses (generator only)
+
+Both models implement realistic degradation synthesis on GPU and support high-order degradation for training Real-World Blind Super-Resolution.
+
+## RealESRGANModel
+
+### Class Definition
+
+```python
+from realesrgan.models.realesrgan_model import RealESRGANModel
+
+model = RealESRGANModel(opt)
+```
+
+### Description
+
+`RealESRGANModel` extends `SRGANModel` from BasicSR and is designed for training Real-ESRGAN with adversarial losses. It performs:
+
+1. Random synthesis of low-quality (LQ) images on GPU using realistic degradations
+2. Network optimization with GAN training (generator and discriminator)
+
+### Constructor Parameters
+
+<ParamField path="opt" type="dict" required>
+  Configuration dictionary containing training options. Key parameters include:
+  
+  - `queue_size` (int, default: 180): Size of training pair pool for increasing degradation diversity
+  - `high_order_degradation` (bool): Enable two-order degradation synthesis
+  - `scale` (int): Upsampling scale factor
+  - `gt_size` (int): Ground truth patch size for training
+  - `l1_gt_usm` (bool): Whether to use USM-sharpened GT for L1 loss
+  - `percep_gt_usm` (bool): Whether to use USM-sharpened GT for perceptual loss
+  - `gan_gt_usm` (bool): Whether to use USM-sharpened GT for GAN loss
+</ParamField>
+
+### Key Methods
+
+#### feed_data()
+
+Accepts data from dataloader and applies two-order degradations to synthesize LQ images.
+
+```python
+model.feed_data(data)
+```
+
+<ParamField path="data" type="dict" required>
+  Dictionary containing:
+  - `gt`: Ground truth high-resolution images
+  - `kernel1`: First blur kernel
+  - `kernel2`: Second blur kernel
+  - `sinc_kernel`: Final sinc filter kernel
+  - `lq`: Low-quality images (for validation/paired training)
+</ParamField>
+
+<Note>
+  During training with `high_order_degradation=True`, this method synthesizes realistic degradations including blur, resize, noise, and JPEG compression applied twice in sequence.
+</Note>
+
+#### optimize_parameters()
+
+Performs one optimization step for both generator and discriminator.
+
+```python
+model.optimize_parameters(current_iter)
+```
+
+<ParamField path="current_iter" type="int" required>
+  Current training iteration number.
+</ParamField>
+
+This method:
+1. Optimizes the generator with pixel loss, perceptual loss, and adversarial loss
+2. Optimizes the discriminator to distinguish real vs. fake images
+3. Updates EMA (Exponential Moving Average) model if enabled
+
+#### nondist_validation()
+
+Runs validation without synthetic degradation process.
+
+```python
+model.nondist_validation(dataloader, current_iter, tb_logger, save_img)
+```
+
+### Degradation Pipeline
+
+The model applies a two-order degradation pipeline during training:
+
+**First Degradation:**
+1. Blur with `kernel1`
+2. Random resize (up/down/keep)
+3. Add Gaussian or Poisson noise
+4. JPEG compression
+
+**Second Degradation:**
+1. Optional blur with `kernel2`
+2. Random resize
+3. Add Gaussian or Poisson noise
+4. JPEG compression + sinc filter
+
+### Training Pair Pool
+
+The model uses `_dequeue_and_enqueue()` to maintain a training pair pool that increases degradation diversity across batches.
+
+## RealESRNetModel
+
+### Class Definition
+
+```python
+from realesrgan.models.realesrnet_model import RealESRNetModel
+
+model = RealESRNetModel(opt)
+```
+
+### Description
+
+`RealESRNetModel` extends `SRModel` from BasicSR and is designed for training Real-ESRGAN **without GAN losses**. It's useful for:
+
+- Pre-training the generator before GAN training
+- Training models without adversarial losses
+- Faster convergence for initial training stages
+
+<Note>
+  RealESRNetModel is trained without GAN losses but uses the same degradation synthesis pipeline as RealESRGANModel.
+</Note>
+
+### Constructor Parameters
+
+<ParamField path="opt" type="dict" required>
+  Configuration dictionary. Key parameters:
+  
+  - `queue_size` (int, default: 180): Training pair pool size
+  - `high_order_degradation` (bool): Enable two-order degradation synthesis
+  - `scale` (int): Upsampling scale factor
+  - `gt_size` (int): Ground truth patch size
+  - `gt_usm` (bool): Apply USM sharpening to ground truth images
+</ParamField>
+
+### Key Methods
+
+#### feed_data()
+
+Same degradation synthesis as RealESRGANModel, but with optional USM sharpening on GT.
+
+```python
+model.feed_data(data)
+```
+
+<Note>
+  Unlike RealESRGANModel, this version applies USM sharpening directly to GT if `gt_usm=True`, rather than maintaining separate GT and GT_USM versions.
+</Note>
+
+#### nondist_validation()
+
+Validation without synthetic degradations.
+
+```python
+model.nondist_validation(dataloader, current_iter, tb_logger, save_img)
+```
+
+### Differences from RealESRGANModel
+
+| Feature | RealESRGANModel | RealESRNetModel |
+|---------|----------------|----------------|
+| Base Class | `SRGANModel` | `SRModel` |
+| GAN Training | Yes (G + D) | No (G only) |
+| USM GT Variants | Multiple (GT, GT_USM) | Single GT with optional USM |
+| Training Speed | Slower | Faster |
+| Image Quality | Higher (with GAN) | Good (no adversarial artifacts) |
+
+## Usage Example
+
+### Training Configuration
+
+```python
+import torch
+from realesrgan.models.realesrgan_model import RealESRGANModel
+
+# Define training options
+opt = {
+    'name': 'RealESRGAN_x4plus',
+    'scale': 4,
+    'queue_size': 180,
+    'high_order_degradation': True,
+    'gt_size': 256,
+    
+    # First degradation
+    'resize_prob': [0.2, 0.7, 0.1],
+    'resize_range': [0.15, 1.5],
+    'gaussian_noise_prob': 0.5,
+    'noise_range': [1, 30],
+    'poisson_scale_range': [0.05, 3],
+    'gray_noise_prob': 0.4,
+    'jpeg_range': [30, 95],
+    
+    # Second degradation
+    'second_blur_prob': 0.8,
+    'resize_prob2': [0.3, 0.4, 0.3],
+    'resize_range2': [0.3, 1.2],
+    'gaussian_noise_prob2': 0.5,
+    'noise_range2': [1, 25],
+    'poisson_scale_range2': [0.05, 2.5],
+    'gray_noise_prob2': 0.4,
+    'jpeg_range2': [30, 95],
+    
+    # Loss options
+    'l1_gt_usm': False,
+    'percep_gt_usm': False,
+    'gan_gt_usm': False,
+    
+    # Network and training
+    'network_g': {...},
+    'network_d': {...},
+    'train': {...}
+}
+
+# Initialize model
+model = RealESRGANModel(opt)
+```
+
+### Pre-training with RealESRNetModel
+
+```python
+from realesrgan.models.realesrnet_model import RealESRNetModel
+
+# First stage: Train without GAN
+opt_psnr = opt.copy()
+opt_psnr['name'] = 'RealESRNet_x4plus'
+model_psnr = RealESRNetModel(opt_psnr)
+
+# Train for 200k iterations...
+# Then switch to GAN training
+
+model_gan = RealESRGANModel(opt)
+model_gan.load_network(model_psnr.net_g, 'net_g')
+
+# Continue training with GAN losses...
+```
+
+## Source References
+
+- **RealESRGANModel**: `realesrgan/models/realesrgan_model.py:14`
+- **RealESRNetModel**: `realesrgan/models/realesrnet_model.py:13`

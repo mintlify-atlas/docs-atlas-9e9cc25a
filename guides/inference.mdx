@@ -1,0 +1,230 @@
+---
+title: 'Basic Inference'
+description: 'Learn how to use Real-ESRGAN for image super-resolution with the inference_realesrgan.py script'
+---
+
+## Overview
+
+The `inference_realesrgan.py` script is the main tool for performing image super-resolution with Real-ESRGAN. It supports various models, configurations, and advanced features like face enhancement and tile processing.
+
+## Quick Start
+
+<Steps>
+  <Step title="Basic Usage">
+    Run Real-ESRGAN with default settings:
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs
+    ```
+    This will process all images in the `inputs` folder using the `RealESRGAN_x4plus` model and save results to the `results` folder.
+  </Step>
+
+  <Step title="Custom Output">
+    Specify input and output paths:
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg -o output_folder
+    ```
+  </Step>
+
+  <Step title="View Results">
+    Enhanced images will be saved with the `_out` suffix by default (e.g., `image_out.png`).
+  </Step>
+</Steps>
+
+## Command-Line Arguments
+
+### Required Arguments
+
+<ParamField path="-i, --input" type="string" default="inputs">
+  Input image file or folder containing images to process
+</ParamField>
+
+<ParamField path="-n, --model_name" type="string" default="RealESRGAN_x4plus">
+  Model to use for super-resolution. Available models:
+  - `RealESRGAN_x4plus` - General purpose 4x upscaling
+  - `RealESRNet_x4plus` - ESRGAN model without GAN
+  - `RealESRGAN_x4plus_anime_6B` - Optimized for anime images
+  - `RealESRGAN_x2plus` - 2x upscaling model
+  - `realesr-animevideov3` - Anime video model (XS size)
+  - `realesr-general-x4v3` - General purpose with denoise control
+</ParamField>
+
+### Output Options
+
+<ParamField path="-o, --output" type="string" default="results">
+  Output folder for enhanced images
+</ParamField>
+
+<ParamField path="-s, --outscale" type="float" default="4">
+  Final upsampling scale of the image. Can be any value (e.g., 3.5).
+  
+  The model performs its native upscaling, then resizes to the target scale using LANCZOS4 interpolation.
+</ParamField>
+
+<ParamField path="--suffix" type="string" default="out">
+  Suffix added to restored images (e.g., `image_out.png`). Set to empty string for no suffix.
+</ParamField>
+
+<ParamField path="--ext" type="string" default="auto">
+  Output image format: `auto`, `jpg`, or `png`
+  
+  - `auto`: Uses the same extension as input
+  - RGBA images are always saved as PNG
+</ParamField>
+
+### Performance Options
+
+<ParamField path="-t, --tile" type="integer" default="0">
+  Tile size for processing large images. Set to 0 to disable tiling.
+  
+  <Warning>
+    Use tiling if you encounter CUDA out of memory errors. Recommended values: 256, 400, or 512.
+  </Warning>
+  
+  ```bash
+  python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --tile 400
+  ```
+</ParamField>
+
+<ParamField path="--tile_pad" type="integer" default="10">
+  Padding size for each tile to reduce edge artifacts
+</ParamField>
+
+<ParamField path="--pre_pad" type="integer" default="0">
+  Pre-padding size at each border of the image
+</ParamField>
+
+<ParamField path="--fp32" type="flag">
+  Use FP32 (full precision) instead of FP16 (half precision) during inference
+  
+  Increases memory usage but may improve quality slightly. Default is FP16.
+</ParamField>
+
+<ParamField path="-g, --gpu-id" type="integer" default="None">
+  GPU device to use (e.g., 0, 1, 2 for multi-GPU systems)
+</ParamField>
+
+### Advanced Options
+
+<ParamField path="--face_enhance" type="flag">
+  Enable GFPGAN face enhancement integration
+  
+  Automatically enhances faces in the image using GFPGAN v1.3
+  
+  ```bash
+  python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs --face_enhance
+  ```
+</ParamField>
+
+<ParamField path="-dn, --denoise_strength" type="float" default="0.5">
+  Denoise strength for the `realesr-general-x4v3` model only
+  
+  - `0`: Weak denoise (keep noise)
+  - `1`: Strong denoise ability
+  - Values between 0 and 1 interpolate between the two extremes
+</ParamField>
+
+<ParamField path="--model_path" type="string" default="None">
+  Custom model path. Usually not needed as models are auto-downloaded to the `weights` folder.
+</ParamField>
+
+<ParamField path="--alpha_upsampler" type="string" default="realesrgan">
+  Upsampler for alpha channels in RGBA images: `realesrgan` or `bicubic`
+</ParamField>
+
+## Common Usage Examples
+
+### Example 1: Basic Upscaling
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg
+```
+
+### Example 2: Custom Scale with Face Enhancement
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --outscale 3.5 --face_enhance
+```
+
+### Example 3: Batch Processing with Tiling
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i inputs_folder -o results --tile 400 --tile_pad 10
+```
+
+### Example 4: Denoise Control
+
+```bash
+python inference_realesrgan.py -n realesr-general-x4v3 -i input.jpg --denoise_strength 0.8
+```
+
+## Model Downloads
+
+Models are automatically downloaded on first use. Manual download URLs:
+
+<Tabs>
+  <Tab title="RealESRGAN_x4plus">
+    ```bash
+    wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth -P weights
+    ```
+  </Tab>
+  
+  <Tab title="RealESRNet_x4plus">
+    ```bash
+    wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.1/RealESRNet_x4plus.pth -P weights
+    ```
+  </Tab>
+  
+  <Tab title="RealESRGAN_x2plus">
+    ```bash
+    wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth -P weights
+    ```
+  </Tab>
+  
+  <Tab title="realesr-general-x4v3">
+    ```bash
+    wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-x4v3.pth -P weights
+    wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-wdn-x4v3.pth -P weights
+    ```
+  </Tab>
+</Tabs>
+
+## Error Handling
+
+<Warning>
+  **CUDA Out of Memory Error**
+  
+  If you encounter this error:
+  ```
+  RuntimeError: CUDA out of memory
+  ```
+  
+  Try the following solutions:
+  1. Use the `--tile` option with a smaller value (e.g., 256 or 400)
+  2. Enable `--fp32` if using half precision
+  3. Use a smaller `--outscale` value
+  4. Process images one at a time instead of batch processing
+</Warning>
+
+## Supported Image Formats
+
+The inference script supports:
+- **Color spaces**: RGB, RGBA (with alpha channel), Grayscale
+- **Bit depths**: 8-bit, 16-bit images
+- **Formats**: JPG, PNG, WebP, and other common formats
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="General Images" icon="image" href="/guides/general-images">
+    Learn model selection for real-world photos
+  </Card>
+  <Card title="Anime Images" icon="sparkles" href="/guides/anime-images">
+    Optimize for anime and illustration content
+  </Card>
+  <Card title="Face Enhancement" icon="user" href="/guides/face-enhancement">
+    Integrate GFPGAN for better face restoration
+  </Card>
+  <Card title="Video Processing" icon="video" href="/guides/anime-videos">
+    Process video files frame by frame
+  </Card>
+</CardGroup>

@@ -1,0 +1,433 @@
+---
+title: 'Face Enhancement'
+description: 'Integrate GFPGAN face enhancement with Real-ESRGAN for superior face restoration'
+---
+
+## Overview
+
+Real-ESRGAN integrates with [GFPGAN](https://github.com/TencentARC/GFPGAN) (Generative Facial Prior GAN) to provide enhanced face restoration. This combination uses Real-ESRGAN for overall image super-resolution and GFPGAN to specifically enhance facial details.
+
+## How It Works
+
+When face enhancement is enabled:
+
+1. **Detection**: GFPGAN detects faces in the image
+2. **Enhancement**: Each detected face is enhanced using GFPGANv1.3
+3. **Background**: Real-ESRGAN upscales the background
+4. **Composition**: Enhanced faces are pasted back into the upscaled background
+
+This approach ensures both high-quality face restoration and overall image super-resolution.
+
+## Quick Start
+
+<Steps>
+  <Step title="Install Dependencies">
+    Install GFPGAN and facexlib:
+    ```bash
+    pip install facexlib
+    pip install gfpgan
+    ```
+  </Step>
+  
+  <Step title="Run with Face Enhancement">
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --face_enhance
+    ```
+  </Step>
+  
+  <Step title="Check Results">
+    The output image will have enhanced faces with upscaled background.
+  </Step>
+</Steps>
+
+## Usage Examples
+
+### Basic Face Enhancement
+
+<CodeGroup>
+```bash Single Image
+python inference_realesrgan.py -n RealESRGAN_x4plus -i portrait.jpg --face_enhance
+```
+
+```bash Batch Processing
+python inference_realesrgan.py -n RealESRGAN_x4plus -i photos_folder --face_enhance
+```
+
+```bash Custom Scale
+python inference_realesrgan.py -n RealESRGAN_x4plus -i portrait.jpg --face_enhance --outscale 2
+```
+
+```bash With Custom Output
+python inference_realesrgan.py -n RealESRGAN_x4plus -i portrait.jpg --face_enhance -o enhanced_photos
+```
+</CodeGroup>
+
+### Advanced Usage
+
+<CodeGroup>
+```bash Large Images with Tiling
+python inference_realesrgan.py -n RealESRGAN_x4plus -i large_photo.jpg \
+  --face_enhance --tile 400 --tile_pad 10
+```
+
+```bash Full Precision
+python inference_realesrgan.py -n RealESRGAN_x4plus -i photo.jpg \
+  --face_enhance --fp32
+```
+
+```bash Custom Suffix
+python inference_realesrgan.py -n RealESRGAN_x4plus -i photo.jpg \
+  --face_enhance --suffix enhanced
+```
+</CodeGroup>
+
+## Compatible Models
+
+<Tabs>
+  <Tab title="Recommended">
+    ### RealESRGAN_x4plus (Best)
+    
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x4plus -i input.jpg --face_enhance
+    ```
+    
+    Best overall quality for photos with faces. Recommended for most use cases.
+  </Tab>
+  
+  <Tab title="Alternative Models">
+    ### RealESRNet_x4plus
+    
+    ```bash
+    python inference_realesrgan.py -n RealESRNet_x4plus -i input.jpg --face_enhance
+    ```
+    
+    Smoother results without GAN artifacts.
+    
+    ### RealESRGAN_x2plus
+    
+    ```bash
+    python inference_realesrgan.py -n RealESRGAN_x2plus -i input.jpg --face_enhance
+    ```
+    
+    For moderate upscaling (2x instead of 4x).
+    
+    ### realesr-general-x4v3
+    
+    ```bash
+    python inference_realesrgan.py -n realesr-general-x4v3 -i input.jpg \
+      --face_enhance --denoise_strength 0.5
+    ```
+    
+    Smaller model with denoise control.
+  </Tab>
+  
+  <Tab title="Not Compatible">
+    <Warning>
+      **Anime Models Not Supported**
+      
+      Face enhancement is disabled for anime models as GFPGAN is trained on realistic faces:
+      
+      - `RealESRGAN_x4plus_anime_6B` - Face enhancement disabled
+      - `realesr-animevideov3` - Face enhancement disabled
+      
+      If you try to use `--face_enhance` with anime models, it will be automatically turned off.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## GFPGAN Integration Details
+
+### Model Information
+
+<ParamField path="Model" type="GFPGANv1.3">
+  GFPGAN version 1.3 is automatically downloaded and used for face enhancement.
+  
+  **Download URL:**
+  ```
+  https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.3.pth
+  ```
+</ParamField>
+
+<ParamField path="Architecture" type="clean">
+  Uses the 'clean' architecture variant of GFPGAN.
+</ParamField>
+
+<ParamField path="Channel Multiplier" type="2">
+  Set to 2 for optimal quality.
+</ParamField>
+
+<ParamField path="Background Upsampler" type="RealESRGAN">
+  Real-ESRGAN is used as the background upsampler, ensuring consistent quality across the entire image.
+</ParamField>
+
+### Face Detection Parameters
+
+```python
+# Internal GFPGAN parameters used by Real-ESRGAN
+has_aligned=False       # Faces are not pre-aligned
+only_center_face=False  # Detect all faces in the image
+paste_back=True         # Paste enhanced faces back to the image
+```
+
+- **has_aligned**: Set to `False` as input faces are not pre-aligned
+- **only_center_face**: Set to `False` to enhance all detected faces
+- **paste_back**: Set to `True` to composite faces back into the upscaled image
+
+## Use Cases
+
+### Portrait Photography
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i portraits --face_enhance
+```
+
+Enhance professional or casual portraits with improved facial details.
+
+### Old Family Photos
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i old_photos \
+  --face_enhance --tile 400
+```
+
+Restore and upscale vintage family photographs. Use tiling for large scans.
+
+### Group Photos
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i group_photo.jpg --face_enhance
+```
+
+Enhance all faces in group photos - GFPGAN detects and enhances each face individually.
+
+### Low-Resolution Photos
+
+```bash
+python inference_realesrgan.py -n RealESRGAN_x4plus -i low_res.jpg \
+  --face_enhance --outscale 4
+```
+
+Upscale and enhance low-resolution images from older cameras or compressed sources.
+
+### Video Frames with Faces
+
+```bash
+# Note: Face enhancement works but is slow for videos
+python inference_realesrgan_video.py -i video.mp4 -n RealESRGAN_x4plus \
+  -s 2 --face_enhance
+```
+
+<Warning>
+  Face enhancement significantly increases processing time for videos. Consider processing only key frames or using face enhancement selectively.
+</Warning>
+
+## Performance Considerations
+
+### Processing Time
+
+Face enhancement adds overhead:
+
+- **Without face enhancement**: ~0.1-0.5s per image (depends on size and GPU)
+- **With face enhancement**: ~0.5-2s per image (depends on number of faces)
+
+<Tip>
+  **Batch Processing**
+  
+  Process multiple images in batch mode for better efficiency:
+  ```bash
+  python inference_realesrgan.py -n RealESRGAN_x4plus -i photos_folder \
+    --face_enhance -o enhanced_folder
+  ```
+</Tip>
+
+### Memory Usage
+
+<Warning>
+  **CUDA Out of Memory**
+  
+  Face enhancement increases memory usage. If you encounter memory errors:
+  
+  1. Use tiling:
+     ```bash
+     python inference_realesrgan.py -n RealESRGAN_x4plus -i photo.jpg \
+       --face_enhance --tile 400
+     ```
+  
+  2. Use a smaller model:
+     ```bash
+     python inference_realesrgan.py -n realesr-general-x4v3 -i photo.jpg \
+       --face_enhance
+     ```
+  
+  3. Process smaller batches or individual images
+</Warning>
+
+### GPU Selection
+
+For multi-GPU systems:
+
+```bash
+# Use specific GPU
+python inference_realesrgan.py -n RealESRGAN_x4plus -i photo.jpg \
+  --face_enhance --gpu-id 0
+```
+
+## Comparison Examples
+
+<CodeGroup>
+```bash Without Face Enhancement
+python inference_realesrgan.py -n RealESRGAN_x4plus -i portrait.jpg
+```
+
+```bash With Face Enhancement
+python inference_realesrgan.py -n RealESRGAN_x4plus -i portrait.jpg --face_enhance
+```
+</CodeGroup>
+
+**Results:**
+- **Without**: Good overall upscaling, but faces may lack fine details
+- **With**: Sharper facial features, better skin texture, enhanced eye details
+
+## Tips for Best Results
+
+<Tip>
+  **Input Image Quality**
+  
+  Better source images = better results:
+  - Use the highest resolution source available
+  - Avoid heavily compressed images when possible
+  - Ensure faces are reasonably visible in the input
+</Tip>
+
+<Tip>
+  **Face Size**
+  
+  Face enhancement works best when:
+  - Faces are at least 64x64 pixels in the input
+  - Faces are clearly visible (not too dark or blurry)
+  - Faces are front-facing or at slight angles
+  
+  For very small faces, upscale without face enhancement first, then apply face enhancement to the upscaled result.
+</Tip>
+
+<Tip>
+  **Multiple Faces**
+  
+  GFPGAN automatically detects and enhances all faces in the image:
+  ```bash
+  python inference_realesrgan.py -n RealESRGAN_x4plus -i group_photo.jpg --face_enhance
+  ```
+  
+  No special configuration needed for multiple faces.
+</Tip>
+
+<Tip>
+  **Output Format**
+  
+  Use PNG for best quality preservation:
+  ```bash
+  python inference_realesrgan.py -n RealESRGAN_x4plus -i photo.jpg \
+    --face_enhance --ext png
+  ```
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="GFPGAN not installed error">
+    Install the required dependencies:
+    ```bash
+    pip install facexlib
+    pip install gfpgan
+    ```
+    
+    If you still encounter issues:
+    ```bash
+    pip install --upgrade gfpgan facexlib
+    ```
+  </Accordion>
+  
+  <Accordion title="Face enhancement not working">
+    Check if you're using a compatible model:
+    
+    **Compatible:**
+    - `RealESRGAN_x4plus` ✓
+    - `RealESRNet_x4plus` ✓
+    - `RealESRGAN_x2plus` ✓
+    - `realesr-general-x4v3` ✓
+    
+    **Not Compatible:**
+    - `RealESRGAN_x4plus_anime_6B` ✗ (automatically disabled)
+    - `realesr-animevideov3` ✗ (automatically disabled)
+  </Accordion>
+  
+  <Accordion title="Faces look unnatural or over-processed">
+    This can happen with heavily compressed or very low-quality inputs. Try:
+    
+    1. Use a higher quality source image
+    2. Try without face enhancement if the result is too aggressive
+    3. Use RealESRNet_x4plus for smoother results:
+       ```bash
+       python inference_realesrgan.py -n RealESRNet_x4plus -i photo.jpg --face_enhance
+       ```
+  </Accordion>
+  
+  <Accordion title="Some faces not detected">
+    GFPGAN may miss faces that are:
+    - Too small (< 64x64 pixels)
+    - At extreme angles
+    - Partially occluded
+    - Very dark or blurry
+    
+    Solutions:
+    1. Pre-crop and process faces individually
+    2. Manually adjust brightness/contrast before processing
+    3. Try upscaling first without face enhancement, then apply face enhancement
+  </Accordion>
+  
+  <Accordion title="CUDA out of memory">
+    Face enhancement requires additional memory. Solutions:
+    
+    1. Use tiling:
+       ```bash
+       python inference_realesrgan.py -n RealESRGAN_x4plus -i photo.jpg \
+         --face_enhance --tile 400
+       ```
+    
+    2. Use smaller model:
+       ```bash
+       python inference_realesrgan.py -n realesr-general-x4v3 -i photo.jpg \
+         --face_enhance
+       ```
+    
+    3. Process images individually instead of batch processing
+  </Accordion>
+</AccordionGroup>
+
+## Standalone GFPGAN
+
+For more control over face enhancement, you can use GFPGAN directly:
+
+```bash
+# Install GFPGAN
+pip install gfpgan
+
+# Use GFPGAN standalone
+python -m gfpgan.inference_gfpgan -i inputs -o results
+```
+
+See the [GFPGAN repository](https://github.com/TencentARC/GFPGAN) for more options.
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="GFPGAN Project" icon="github" href="https://github.com/TencentARC/GFPGAN">
+    Official GFPGAN repository
+  </Card>
+  <Card title="General Images" icon="image" href="/guides/general-images">
+    Learn about models for real-world photos
+  </Card>
+  <Card title="Basic Inference" icon="play" href="/guides/inference">
+    Complete reference for inference options
+  </Card>
+</CardGroup>

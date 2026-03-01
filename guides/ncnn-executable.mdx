@@ -1,0 +1,506 @@
+---
+title: 'NCNN Executable'
+description: 'Use the portable Real-ESRGAN-ncnn-vulkan executable without Python or CUDA'
+---
+
+## Overview
+
+Real-ESRGAN provides portable executable files powered by [NCNN](https://github.com/Tencent/ncnn) and Vulkan. These executables work on Intel/AMD/Nvidia GPUs without requiring Python, PyTorch, or CUDA installation.
+
+<Note>
+  The NCNN executable is ideal for users who want a simple, portable solution without setting up a Python environment.
+</Note>
+
+## Download Executables
+
+<CardGroup cols={3}>
+  <Card title="Windows" icon="windows" href="https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip">
+    Download for Windows
+  </Card>
+  <Card title="Linux" icon="linux" href="https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip">
+    Download for Ubuntu/Linux
+  </Card>
+  <Card title="MacOS" icon="apple" href="https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-macos.zip">
+    Download for MacOS
+  </Card>
+</CardGroup>
+
+### Direct Download Links
+
+```bash
+# Windows
+https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip
+
+# Linux
+https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip
+
+# MacOS
+https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-macos.zip
+```
+
+## Quick Start
+
+<Steps>
+  <Step title="Download and Extract">
+    Download the appropriate executable for your platform and extract the archive.
+  </Step>
+  
+  <Step title="Run Basic Command">
+    <Tabs>
+      <Tab title="Windows">
+        ```bash
+        realesrgan-ncnn-vulkan.exe -i input.jpg -o output.png
+        ```
+      </Tab>
+      <Tab title="Linux/MacOS">
+        ```bash
+        ./realesrgan-ncnn-vulkan -i input.jpg -o output.png
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  
+  <Step title="Check Output">
+    The enhanced image is saved as `output.png` with 4x upscaling by default.
+  </Step>
+</Steps>
+
+## Command-Line Reference
+
+### Basic Syntax
+
+```console
+Usage: realesrgan-ncnn-vulkan -i infile -o outfile [options]...
+```
+
+### Arguments
+
+<ParamField path="-h" type="flag">
+  Show help message
+</ParamField>
+
+<ParamField path="-i input-path" type="string" required>
+  Input image path (jpg/png/webp) or directory
+  
+  Examples:
+  - Single file: `-i input.jpg`
+  - Directory: `-i input_folder`
+</ParamField>
+
+<ParamField path="-o output-path" type="string" required>
+  Output image path (jpg/png/webp) or directory
+  
+  Examples:
+  - Single file: `-o output.png`
+  - Directory: `-o output_folder`
+</ParamField>
+
+<ParamField path="-s scale" type="integer" default="4">
+  Upscale ratio: 2, 3, or 4
+  
+  Example: `-s 2` for 2x upscaling
+</ParamField>
+
+<ParamField path="-t tile-size" type="integer" default="0">
+  Tile size (>=32 or 0=auto)
+  
+  - `0`: Auto tile size
+  - `>=32`: Manual tile size
+  - Format for multi-GPU: `0,0,0`
+  
+  Use tiling for large images or limited VRAM.
+</ParamField>
+
+<ParamField path="-m model-path" type="string" default="models">
+  Folder path to pre-trained models
+</ParamField>
+
+<ParamField path="-n model-name" type="string" default="realesr-animevideov3">
+  Model name to use. Options:
+  - `realesr-animevideov3` (default)
+  - `realesrgan-x4plus`
+  - `realesrgan-x4plus-anime`
+  - `realesrnet-x4plus`
+</ParamField>
+
+<ParamField path="-g gpu-id" type="string" default="auto">
+  GPU device to use
+  
+  - `auto`: Automatic selection
+  - Single GPU: `-g 0`, `-g 1`, etc.
+  - Multi-GPU: `-g 0,1,2`
+</ParamField>
+
+<ParamField path="-j load:proc:save" type="string" default="1:2:2">
+  Thread count for load/proc/save
+  
+  - Default: `1:2:2`
+  - Multi-GPU: `1:2,2,2:2`
+</ParamField>
+
+<ParamField path="-x" type="flag">
+  Enable TTA (Test-Time Augmentation) mode
+  
+  Improves quality but increases processing time.
+</ParamField>
+
+<ParamField path="-f format" type="string" default="ext/png">
+  Output image format: jpg, png, or webp
+  
+  - Default: same as input or PNG
+</ParamField>
+
+<ParamField path="-v" type="flag">
+  Verbose output (show detailed information)
+</ParamField>
+
+## Available Models
+
+<Tabs>
+  <Tab title="realesr-animevideov3">
+    **Default model** - Optimized for anime videos and images
+    
+    ```bash
+    # Windows
+    realesrgan-ncnn-vulkan.exe -i input.jpg -o output.png -n realesr-animevideov3
+    
+    # Linux/MacOS
+    ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -n realesr-animevideov3
+    ```
+    
+    - **Size**: XS (~8MB)
+    - **Best for**: Anime images and video frames
+    - **Speed**: Fast
+  </Tab>
+  
+  <Tab title="realesrgan-x4plus">
+    **General purpose model**
+    
+    ```bash
+    # Windows
+    realesrgan-ncnn-vulkan.exe -i input.jpg -o output.png -n realesrgan-x4plus
+    
+    # Linux/MacOS
+    ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -n realesrgan-x4plus
+    ```
+    
+    - **Size**: ~64MB
+    - **Best for**: Real-world photos, general images
+    - **Speed**: Medium
+  </Tab>
+  
+  <Tab title="realesrgan-x4plus-anime">
+    **Anime-optimized model**
+    
+    ```bash
+    # Windows
+    realesrgan-ncnn-vulkan.exe -i input.jpg -o output.png -n realesrgan-x4plus-anime
+    
+    # Linux/MacOS
+    ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -n realesrgan-x4plus-anime
+    ```
+    
+    - **Size**: ~17MB
+    - **Best for**: Anime illustrations
+    - **Speed**: Medium-Fast
+  </Tab>
+  
+  <Tab title="realesrnet-x4plus">
+    **ESRGAN without GAN** (smoother results)
+    
+    ```bash
+    # Windows
+    realesrgan-ncnn-vulkan.exe -i input.jpg -o output.png -n realesrnet-x4plus
+    
+    # Linux/MacOS
+    ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -n realesrnet-x4plus
+    ```
+    
+    - **Size**: ~64MB
+    - **Best for**: When you want smooth results without GAN artifacts
+    - **Speed**: Medium
+  </Tab>
+</Tabs>
+
+## Usage Examples
+
+### General Images
+
+<CodeGroup>
+```bash Windows - Basic
+realesrgan-ncnn-vulkan.exe -i input.jpg -o output.png -n realesrgan-x4plus
+```
+
+```bash Linux - Basic
+./realesrgan-ncnn-vulkan -i input.jpg -o output.png -n realesrgan-x4plus
+```
+
+```bash 2x Upscaling
+./realesrgan-ncnn-vulkan -i input.jpg -o output.png -n realesrgan-x4plus -s 2
+```
+
+```bash Batch Processing
+./realesrgan-ncnn-vulkan -i input_folder -o output_folder -n realesrgan-x4plus
+```
+</CodeGroup>
+
+### Anime Images
+
+<CodeGroup>
+```bash Anime Video Model
+./realesrgan-ncnn-vulkan -i anime.jpg -o output.png -n realesr-animevideov3
+```
+
+```bash Anime Image Model
+./realesrgan-ncnn-vulkan -i anime.jpg -o output.png -n realesrgan-x4plus-anime
+```
+
+```bash With Custom Scale
+./realesrgan-ncnn-vulkan -i anime.jpg -o output.png -n realesrgan-x4plus-anime -s 2
+```
+</CodeGroup>
+
+### Video Frames Processing
+
+<Steps>
+  <Step title="Extract Frames">
+    ```bash
+    mkdir tmp_frames
+    ffmpeg -i input.mp4 -qscale:v 1 -qmin 1 -qmax 1 -vsync 0 tmp_frames/frame%08d.png
+    ```
+  </Step>
+  
+  <Step title="Process Frames">
+    ```bash
+    mkdir out_frames
+    ./realesrgan-ncnn-vulkan -i tmp_frames -o out_frames -n realesr-animevideov3 -s 2 -f jpg
+    ```
+  </Step>
+  
+  <Step title="Merge Back to Video">
+    ```bash
+    # Get FPS from original
+    ffmpeg -i input.mp4
+    
+    # Merge with audio
+    ffmpeg -r 23.98 -i out_frames/frame%08d.jpg -i input.mp4 \
+      -map 0:v:0 -map 1:a:0 -c:a copy -c:v libx264 \
+      -r 23.98 -pix_fmt yuv420p output.mp4
+    ```
+  </Step>
+</Steps>
+
+### Advanced Options
+
+<CodeGroup>
+```bash With Tiling
+./realesrgan-ncnn-vulkan -i large_image.jpg -o output.png -t 512
+```
+
+```bash Specific GPU
+./realesrgan-ncnn-vulkan -i input.jpg -o output.png -g 0
+```
+
+```bash Multi-GPU
+./realesrgan-ncnn-vulkan -i input.jpg -o output.png -g 0,1 -j 1:2,2:2
+```
+
+```bash TTA Mode (Better Quality)
+./realesrgan-ncnn-vulkan -i input.jpg -o output.png -x
+```
+
+```bash Verbose Output
+./realesrgan-ncnn-vulkan -i input.jpg -o output.png -v
+```
+
+```bash WebP Output
+./realesrgan-ncnn-vulkan -i input.jpg -o output.webp -f webp
+```
+</CodeGroup>
+
+## Performance Tips
+
+<Tip>
+  **Tile Size Selection**
+  
+  Choose tile size based on your GPU VRAM:
+  - **8GB+ VRAM**: `-t 0` (auto) or no tiling
+  - **4-8GB VRAM**: `-t 512` or `-t 400`
+  - **Less than 4GB VRAM**: `-t 256` or `-t 200`
+  
+  Smaller tiles use less memory but may show slight artifacts at tile boundaries.
+</Tip>
+
+<Tip>
+  **Multi-GPU Usage**
+  
+  For systems with multiple GPUs:
+  ```bash
+  ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -g 0,1,2 -t 0,0,0
+  ```
+  
+  This distributes processing across GPUs 0, 1, and 2.
+</Tip>
+
+<Tip>
+  **TTA Mode**
+  
+  Enable TTA for potentially better quality (slower):
+  ```bash
+  ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -x
+  ```
+  
+  TTA applies transformations, processes, then averages results. Best for critical images.
+</Tip>
+
+## NCNN vs Python Implementation
+
+<Tabs>
+  <Tab title="Advantages">
+    **NCNN Advantages:**
+    
+    ✓ No Python/PyTorch installation required
+    ✓ Portable executable - works out of the box
+    ✓ Works with Intel/AMD GPUs via Vulkan
+    ✓ Smaller download size
+    ✓ No CUDA requirement
+    ✓ Easier for non-technical users
+  </Tab>
+  
+  <Tab title="Limitations">
+    **NCNN Limitations:**
+    
+    ✗ May produce slightly different results than PyTorch
+    ✗ Potential block inconsistency with tiling
+    ✗ No `--outscale` for arbitrary scaling
+    ✗ No face enhancement integration
+    ✗ No denoise strength control
+    ✗ Fewer models available
+    
+    For maximum quality and features, use the Python implementation.
+  </Tab>
+  
+  <Tab title="Comparison">
+    | Feature | NCNN | Python |
+    |---------|------|--------|
+    | Setup | Easy | Requires Python |
+    | GPU Support | Intel/AMD/Nvidia | Nvidia (CUDA) |
+    | Face Enhancement | No | Yes |
+    | Arbitrary Scale | No | Yes |
+    | Denoise Control | No | Yes |
+    | Quality | Very Good | Excellent |
+    | Speed | Fast | Fast |
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Vulkan not found error">
+    Install Vulkan drivers for your GPU:
+    
+    **Windows:**
+    - Nvidia: Install latest GeForce drivers
+    - AMD: Install latest Radeon drivers
+    - Intel: Install latest graphics drivers
+    
+    **Linux:**
+    ```bash
+    # Ubuntu/Debian
+    sudo apt install vulkan-utils
+    
+    # Check Vulkan
+    vulkaninfo
+    ```
+    
+    **MacOS:**
+    - macOS 10.15+ includes Vulkan support via MoltenVK
+  </Accordion>
+  
+  <Accordion title="Out of memory error">
+    Reduce tile size:
+    ```bash
+    ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -t 256
+    ```
+    
+    Or use an even smaller tile size:
+    ```bash
+    ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -t 128
+    ```
+  </Accordion>
+  
+  <Accordion title="Block artifacts in output">
+    This is due to tiling. To minimize:
+    
+    1. Use larger tile size (if memory allows):
+       ```bash
+       ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -t 512
+       ```
+    
+    2. Use auto tile size:
+       ```bash
+       ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -t 0
+       ```
+    
+    3. If possible, disable tiling by using the Python implementation
+  </Accordion>
+  
+  <Accordion title="Model not found error">
+    Ensure models are in the correct directory:
+    
+    1. Check the `models` folder exists in the same directory as the executable
+    2. Verify model files are present
+    3. Specify custom model path:
+       ```bash
+       ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -m /path/to/models
+       ```
+  </Accordion>
+  
+  <Accordion title="Slow processing on CPU">
+    If using CPU instead of GPU:
+    
+    1. Install proper GPU drivers
+    2. Verify Vulkan is working: `vulkaninfo` (Linux)
+    3. Specify GPU explicitly:
+       ```bash
+       ./realesrgan-ncnn-vulkan -i input.jpg -o output.png -g 0
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="Real-ESRGAN-ncnn-vulkan" icon="github" href="https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan">
+    Official NCNN implementation repository
+  </Card>
+  <Card title="Python Inference" icon="python" href="/guides/inference">
+    Full Python implementation with all features
+  </Card>
+  <Card title="Anime Videos" icon="video" href="/guides/anime-videos">
+    Process anime videos using NCNN
+  </Card>
+</CardGroup>
+
+## When to Use NCNN vs Python
+
+<Tabs>
+  <Tab title="Use NCNN When">
+    ✓ You don't have Python installed
+    ✓ You want a simple, portable solution
+    ✓ You have Intel or AMD GPU (no CUDA)
+    ✓ You need quick setup
+    ✓ You're processing standard images
+    ✓ You don't need face enhancement
+  </Tab>
+  
+  <Tab title="Use Python When">
+    ✓ You need face enhancement
+    ✓ You want arbitrary output scales
+    ✓ You need denoise control
+    ✓ You want maximum quality
+    ✓ You have Python environment already
+    ✓ You have Nvidia GPU with CUDA
+    ✓ You need all available models
+  </Tab>
+</Tabs>

@@ -1,0 +1,362 @@
+---
+title: Training Strategy
+description: Understanding Real-ESRGAN's two-stage training process and loss functions
+---
+
+Real-ESRGAN employs a carefully designed two-stage training strategy that balances pixel-accurate reconstruction with perceptual quality and photorealism.
+
+## Two-Stage Training Overview
+
+The training process is divided into two distinct stages, each with different objectives and loss functions:
+
+<Info>
+  **Stage 1: Real-ESRNet** - Train with L1 loss for pixel-accurate reconstruction  
+  **Stage 2: Real-ESRGAN** - Fine-tune with L1 + perceptual + GAN losses for enhanced perceptual quality
+</Info>
+
+This staged approach prevents the common GAN training pitfall where the discriminator becomes too strong early in training, making it difficult for the generator to learn the basic reconstruction task.
+
+## Stage 1: Training Real-ESRNet
+
+The first stage focuses on learning accurate pixel-level reconstruction without adversarial training.
+
+### Objective
+
+Train the generator (RRDBNet or SRVGGNetCompact) to accurately reconstruct high-resolution images from synthetically degraded low-resolution inputs.
+
+### Loss Function
+
+**L1 Loss Only**
+```
+L_pixel = ||G(I_LR) - I_HR||_1
+```
+
+Where:
+- `G` is the generator network
+- `I_LR` is the low-resolution input image
+- `I_HR` is the high-resolution ground truth image
+- `||·||_1` is the L1 (mean absolute error) norm
+
+### Training Configuration
+
+Based on `docs/Training.md`:
+
+**Initialization**
+- Pre-trained ESRGAN model: `ESRGAN_SRx4_DF2KOST_official-ff704c30.pth`
+- Starting from a model trained on paired bicubic degradation provides a good initialization
+
+**Dataset**
+- DF2K (DIV2K + Flickr2K) + OST datasets
+- Only high-resolution images are required
+- Low-quality images are generated on-the-fly using the degradation pipeline
+
+**Training Details**
+- Typically trained for ~1,000,000 iterations
+- Batch size: 12 per GPU (with 4 GPUs = 48 total batch size)
+- Learning rate and scheduling defined in training config
+
+<Note>
+  The output of Stage 1 is the Real-ESRNet model, which produces sharp and accurate reconstructions but may lack the fine textures and details that make images look truly realistic.
+</Note>
+
+### Why L1 Loss First?
+
+Training with L1 loss first provides several benefits:
+
+1. **Stable Foundation**: Establishes basic super-resolution capability without adversarial instability
+2. **Accurate Structure**: Ensures the network learns correct image structure and content
+3. **Better Initialization**: Provides a strong starting point for GAN training
+4. **Faster Convergence**: L1 training converges more reliably than joint GAN training from scratch
+
+## Stage 2: Training Real-ESRGAN
+
+The second stage adds perceptual and adversarial losses to enhance realism and fine details.
+
+### Objective
+
+Fine-tune the generator to produce perceptually realistic images with natural textures and fine details while maintaining structural accuracy.
+
+### Loss Function
+
+**Combined Loss**
+```
+L_total = λ_pixel * L_pixel + λ_percep * L_percep + λ_gan * L_gan
+```
+
+Where the loss combines three components:
+
+#### 1. L1 Loss (Pixel Loss)
+```
+L_pixel = ||G(I_LR) - I_HR||_1
+```
+- Maintains pixel-level accuracy
+- Prevents the generator from deviating too far from ground truth
+- Ensures structural consistency
+
+#### 2. Perceptual Loss
+```
+L_percep = ||φ(G(I_LR)) - φ(I_HR)||_2
+```
+- Compares high-level features extracted by a pre-trained VGG network
+- `φ` represents features from specific VGG layers
+- Encourages perceptual similarity rather than exact pixel matching
+- Helps generate natural textures and patterns
+
+#### 3. GAN Loss (Adversarial Loss)
+```
+L_gan = -log(D(G(I_LR)))
+```
+- Trains generator to fool the discriminator
+- `D` is the UNetDiscriminatorSN discriminator
+- Pushes outputs toward the manifold of natural images
+- Creates photorealistic textures and fine details
+
+### Training Configuration
+
+**Initialization**
+- Uses the trained Real-ESRNet model from Stage 1 as starting point
+- Example: `experiments/train_RealESRNetx4plus_1000k_B12G4_fromESRGAN/model/net_g_1000000.pth`
+- Discriminator is initialized from scratch (or from a pre-trained discriminator)
+
+**Training Details**
+- Additional training iterations on top of Stage 1
+- Same dataset and degradation pipeline as Stage 1
+- Loss weights `λ` are carefully tuned to balance the three loss components
+
+<Accordion title="Loss Weight Balancing">
+  The relative weights of the three losses significantly impact the final result:
+  
+  **Higher λ_pixel**
+  - More faithful to ground truth pixels
+  - Sharper, more accurate structure
+  - May appear slightly smoother or less detailed
+  
+  **Higher λ_percep**
+  - More natural textures
+  - Better perceptual quality
+  - May introduce slight inaccuracies in structure
+  
+  **Higher λ_gan**
+  - Most photorealistic appearance
+  - Finest details and textures
+  - Risk of hallucinating incorrect details
+  - Can introduce artifacts if too high
+  
+  Real-ESRGAN's default weights are carefully tuned to balance these trade-offs for general images.
+</Accordion>
+
+## Discriminator Training
+
+While the generator trains with the combined loss, the discriminator (UNetDiscriminatorSN) trains with its own objective:
+
+```
+L_D = -log(D(I_HR)) - log(1 - D(G(I_LR)))
+```
+
+The discriminator learns to:
+- Output high values for real high-resolution images
+- Output low values for generator-produced images
+- Provide gradient feedback to improve generator quality
+
+**Spectral Normalization**: Applied to all discriminator convolutional layers to:
+- Stabilize adversarial training
+- Prevent discriminator from becoming too strong
+- Enable balanced generator/discriminator learning
+
+## Degradation Pipeline During Training
+
+Both training stages use the same sophisticated degradation pipeline to generate training pairs on-the-fly:
+
+### High-Order Degradation Process
+
+1. **First Degradation Round**
+   - Blur (isotropic/anisotropic Gaussian, generalized Gaussian)
+   - Downsample (bilinear, bicubic, area)
+   - Noise (Gaussian, Poisson)
+   - JPEG compression
+
+2. **Second Degradation Round**
+   - Repeat with different random parameters
+   - Models multiple processing rounds
+
+3. **Sinc Filter**
+   - Apply sinc filter to simulate ringing artifacts
+   - Models common image processing artifacts
+
+<Note>
+  All degradation parameters are randomly sampled during training, ensuring the model learns to handle a wide variety of real-world degradations without overfitting to specific patterns.
+</Note>
+
+## Training Commands
+
+Based on the source documentation in `docs/Training.md`:
+
+### Stage 1: Train Real-ESRNet
+
+**Multi-GPU Training (4 GPUs)**
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
+python -m torch.distributed.launch --nproc_per_node=4 --master_port=4321 \
+realesrgan/train.py -opt options/train_realesrnet_x4plus.yml \
+--launcher pytorch --auto_resume
+```
+
+**Single GPU Training**
+```bash
+python realesrgan/train.py -opt options/train_realesrnet_x4plus.yml --auto_resume
+```
+
+### Stage 2: Train Real-ESRGAN
+
+**Multi-GPU Training (4 GPUs)**
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
+python -m torch.distributed.launch --nproc_per_node=4 --master_port=4321 \
+realesrgan/train.py -opt options/train_realesrgan_x4plus.yml \
+--launcher pytorch --auto_resume
+```
+
+**Single GPU Training**
+```bash
+python realesrgan/train.py -opt options/train_realesrgan_x4plus.yml --auto_resume
+```
+
+## Fine-tuning on Custom Datasets
+
+Real-ESRGAN supports two approaches for fine-tuning on custom data:
+
+### Option 1: Generate Degradations On-the-Fly
+
+Use your own high-resolution images with the same degradation pipeline:
+
+1. Prepare your HR image dataset
+2. Download pre-trained models:
+   - `RealESRGAN_x4plus.pth` (generator)
+   - `RealESRGAN_x4plus_netD.pth` (discriminator)
+3. Modify `options/finetune_realesrgan_x4plus.yml` to point to your dataset
+4. Run training:
+
+```bash
+python realesrgan/train.py -opt options/finetune_realesrgan_x4plus.yml --auto_resume
+```
+
+<Info>
+  This approach works well when your domain has similar degradation patterns to natural images, or when you want the model to learn from your specific degradation synthesis.
+</Info>
+
+### Option 2: Use Paired Training Data
+
+If you have real low-resolution and high-resolution pairs:
+
+1. Prepare folders with paired LR and HR images
+2. Generate paired meta-info file using `scripts/generate_meta_info_pairdata.py`
+3. Modify `options/finetune_realesrgan_x4plus_pairdata.yml`
+4. Run training:
+
+```bash
+python realesrgan/train.py -opt options/finetune_realesrgan_x4plus_pairdata.yml --auto_resume
+```
+
+<Note>
+  Paired data training is similar to fine-tuning ESRGAN and works well when you have real degraded images you want to restore, or when degradations are domain-specific and hard to synthesize.
+</Note>
+
+## Dataset Preparation
+
+For training or fine-tuning, the following datasets are used:
+
+### Standard Training Datasets
+
+- **DIV2K**: 800 high-quality 2K resolution images
+- **Flickr2K**: 2650 high-quality 2K resolution images  
+- **OST**: Outdoor Scene Training dataset
+
+### Data Preprocessing Steps
+
+1. **[Optional] Multi-scale Generation**
+   ```bash
+   python scripts/generate_multiscale_DF2K.py \
+     --input datasets/DF2K/DF2K_HR \
+     --output datasets/DF2K/DF2K_multiscale
+   ```
+
+2. **[Optional] Crop to Sub-images**
+   ```bash
+   python scripts/extract_subimages.py \
+     --input datasets/DF2K/DF2K_multiscale \
+     --output datasets/DF2K/DF2K_multiscale_sub \
+     --crop_size 400 --step 200
+   ```
+
+3. **Generate Meta-info File**
+   ```bash
+   python scripts/generate_meta_info.py \
+     --input datasets/DF2K/DF2K_HR datasets/DF2K/DF2K_multiscale \
+     --root datasets/DF2K datasets/DF2K \
+     --meta_info datasets/DF2K/meta_info/meta_info_DF2Kmultiscale.txt
+   ```
+
+<Accordion title="Why These Preprocessing Steps?">
+  **Multi-scale Images**
+  - Provides training samples at different resolutions
+  - Helps model learn scale-invariant features
+  - Improves generalization to different input sizes
+  
+  **Sub-image Cropping**
+  - Faster I/O during training (smaller files)
+  - More efficient data loading
+  - Increased effective dataset size through more crops
+  - Optional if disk space or I/O is limited
+  
+  **Meta-info File**
+  - Lists all training image paths
+  - Enables efficient dataset indexing
+  - Supports combining multiple datasets
+</Accordion>
+
+## Training Tips
+
+### Debug Mode
+
+Before full training, test your configuration in debug mode:
+
+```bash
+python realesrgan/train.py -opt options/train_realesrnet_x4plus.yml --debug
+```
+
+This performs a quick check that:
+- Data loading works correctly
+- Model architecture is valid
+- Loss computations succeed
+- GPU memory is sufficient
+
+### Validation During Training
+
+Uncomment validation sections in the config file to monitor progress:
+
+```yaml
+val:
+  val_freq: !!float 5e3
+  save_img: True
+  metrics:
+    psnr:
+      type: calculate_psnr
+      crop_border: 4
+      test_y_channel: false
+```
+
+### Auto-Resume
+
+Use `--auto_resume` flag to automatically continue from the latest checkpoint if training is interrupted.
+
+## Why This Strategy Works
+
+The two-stage training approach with combined losses achieves superior results because:
+
+1. **Stable Learning**: L1 pre-training provides a stable foundation before adversarial training
+2. **Balanced Quality**: Combined losses balance pixel accuracy, perceptual quality, and photorealism
+3. **Robust Discriminator**: U-Net discriminator with spectral normalization enables stable GAN training
+4. **Rich Training Data**: On-the-fly degradation synthesis provides unlimited diverse training samples
+5. **Transfer Learning**: Starting from ESRGAN pre-trained on clean data accelerates convergence
+
+The result is a model that produces sharp, detailed, and photorealistic super-resolution results on real-world degraded images.
