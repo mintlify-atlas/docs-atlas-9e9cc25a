@@ -1,0 +1,119 @@
+{
+  "projectType": "ai-ml",
+  "projectName": "Real-ESRGAN",
+  "projectDescription": "Practical algorithms for general image and video restoration using deep learning super-resolution",
+  "theme": "aspen",
+  "primaryColor": "#8B5CF6",
+  "lightColor": "#A78BFA",
+  "darkColor": "#7C3AED",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/how-it-works",
+              "concepts/model-architecture",
+              "concepts/training-strategy"
+            ]
+          },
+          {
+            "group": "Usage Guides",
+            "pages": [
+              "guides/inference",
+              "guides/general-images",
+              "guides/anime-images",
+              "guides/anime-videos",
+              "guides/face-enhancement",
+              "guides/ncnn-executable"
+            ]
+          },
+          {
+            "group": "Training",
+            "pages": [
+              "training/overview",
+              "training/dataset-preparation",
+              "training/train-realesrnet",
+              "training/train-realesrgan",
+              "training/finetune"
+            ]
+          },
+          {
+            "group": "Models",
+            "pages": [
+              "models/model-zoo",
+              "models/general-models",
+              "models/anime-models",
+              "models/video-models"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "resources/faq",
+              "resources/comparisons",
+              "resources/contributing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core Classes",
+            "pages": [
+              "api/realesrganer",
+              "api/models"
+            ]
+          },
+          {
+            "group": "Architectures",
+            "pages": [
+              "api/architectures/rrdbnet",
+              "api/architectures/srvgg"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "api/utils",
+              "api/inference-scripts"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "4x/2x image super-resolution with Real-ESRGAN models",
+    "Specialized anime image enhancement (RealESRGAN_x4plus_anime_6B)",
+    "Anime video restoration (realesr-animevideov3)",
+    "Face enhancement with GFPGAN integration",
+    "Training and fine-tuning on custom datasets",
+    "Multiple inference options (Python, NCNN executable, online demos)",
+    "Support for tiles, alpha channels, gray images, and 16-bit images"
+  ],
+  "publicApiSurface": [
+    "RealESRGANer",
+    "RRDBNet",
+    "SRVGGNetCompact",
+    "inference_realesrgan.py",
+    "inference_realesrgan_video.py",
+    "RealESRGAN_x4plus",
+    "RealESRGAN_x4plus_anime_6B",
+    "RealESRNet_x4plus",
+    "realesr-animevideov3",
+    "realesr-general-x4v3"
+  ]
+}
